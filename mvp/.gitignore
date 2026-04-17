@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+webapp/dist/
+webapp/node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Test coverage
+coverage/
+
+# Vite cache
+.vite/
+.eslintcache
+
+# Temporary files
+*.tmp
+*.temp
+
+# OS specific
+*.lock
+package-lock.json
+pnpm-lock.yaml
+yarn.lock

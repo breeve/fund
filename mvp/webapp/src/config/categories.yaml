@@ -1,0 +1,134 @@
+# Asset Category Configuration
+# 资产类别配置
+#
+# Each category has:
+#   - id: unique identifier (used in code)
+#   - name: display name in Chinese
+#   - nameEn: display name in English
+#   - description: short description in Chinese
+#   - descriptionEn: short description in English
+#   - subTypes: list of sub-categories
+
+categories:
+  - id: liquid
+    name: 流动资产
+    nameEn: Liquid Assets
+    description: 高度流动，7天内可变现
+    descriptionEn: Highly liquid, convertible within 7 days
+    subTypes:
+      - id: cash
+        name: 现金类
+        nameEn: Cash
+        description: 手头现金、活期存款
+      - id: short-term
+        name: 短期理财
+        nameEn: Short-term Investments
+        description: 7天内可赎的理财产品
+      - id: quick-liquid
+        name: 可快速变现类
+        nameEn: Quick Liquid
+        description: T+1到账的定期存款
+
+  - id: fixed
+    name: 固定资产
+    nameEn: Fixed Assets
+    description: 低流动，变现周期超过3个月
+    descriptionEn: Low liquidity, conversion period > 3 months
+    subTypes:
+      - id: self-use
+        name: 自用型实物
+        nameEn: Self-use Property
+        description: 自住房产、自用车辆
+      - id: investment-real
+        name: 投资型实物
+        nameEn: Investment Real Estate
+        description: 用于出租的房产
+      - id: investment-equity
+        name: 投资型权益
+        nameEn: Investment Equity
+        description: 有限责任公司股权
+
+  - id: financial
+    name: 金融投资
+    nameEn: Financial Investments
+    description: 中等流动，1-30天变现
+    descriptionEn: Medium liquidity, convertible in 1-30 days
+    subTypes:
+      - id: equity
+        name: 权益类
+        nameEn: Equity
+        description: 股票、ETF、公募基金
+      - id: fixed-income
+        name: 固定收益类
+        nameEn: Fixed Income
+        description: 债券、国债、企业债
+      - id: fund
+        name: 基金类
+        nameEn: Funds
+        description: 公募基金、私募基金
+      - id: alternative
+        name: 另类投资
+        nameEn: Alternative Investments
+        description: 黄金、贵金属、大宗商品
+      - id: derivative
+        name: 衍生品
+        nameEn: Derivatives
+        description: 期权、期货、结构性存款
+
+  - id: protection
+    name: 保障类
+    nameEn: Protection Assets
+    description: 长期锁定，用于风险对冲
+    descriptionEn: Long-term lock-in for risk hedging
+    subTypes:
+      - id: health
+        name: 健康险
+        nameEn: Health Insurance
+        description: 重疾险、医疗险、防癌险
+      - id: accident
+        name: 意外险
+        nameEn: Accident Insurance
+        description: 意外伤害险、意外医疗险
+      - id: life
+        name: 寿险
+        nameEn: Life Insurance
+        description: 定期寿险、终身寿险
+      - id: annuity
+        name: 年金险
+        nameEn: Annuity Insurance
+        description: 养老年金险、教育金险
+      - id: social
+        name: 社保/公积金
+        nameEn: Social Security / Housing Fund
+        description: 养老保险、医保、公积金
+
+  - id: liability
+    name: 负债
+    nameEn: Liabilities
+    description: 影响净资产的减项
+    descriptionEn: Items that reduce net worth
+    subTypes:
+      - id: housing
+        name: 住房负债
+        nameEn: Housing Debt
+        description: 住房贷款、公积金贷款
+      - id: consumption
+        name: 消费负债
+        nameEn: Consumer Debt
+        description: 车贷、消费贷、助学贷
+      - id: credit
+        name: 信用负债
+        nameEn: Credit Debt
+        description: 信用卡欠款、消费分期
+      - id: other
+        name: 其他负债
+        nameEn: Other Debts
+        description: 民间借贷、担保债务
+
+# Color scheme for each category (used in charts)
+categoryColors:
+  liquid: "#22c55e"    # green
+  fixed: "#3b82f6"      # blue
+  financial: "#8b5cf6" # purple
+  protection: "#f59e0b" # amber
+  liability: "#ef4444"  # red

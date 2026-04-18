@@ -2,11 +2,24 @@
 #
 # Usage:
 #   make mvp-webapp      - Build MVP webapp (npm)
-#   make mvp-serve       - Serve MVP webapp in dev mode
-#   make mvp-build       - Production build
-#   make mvp-test        - Run tests
-#   make mvp-lint        - Lint code
-#   make mvp-clean       - Clean build artifacts
+#   make mvp-serve      - Serve MVP webapp in dev mode
+#   make mvp-build      - Production build
+#   make mvp-test       - Run tests
+#   make mvp-lint       - Lint code
+#   make mvp-clean      - Clean build artifacts
+#
+# PWA targets:
+#   make pwa-icons      - Generate PWA icons
+#   make pwa-preview    - Preview PWA production build locally
+#
+# Capacitor targets:
+#   make cap-init       - Initialize Capacitor
+#   make cap-add-macos  - Add macOS platform
+#   make cap-sync       - Sync web to native
+#   make cap-open       - Open native project in Xcode/Android Studio
+#
+# GitHub Pages:
+#   make github-pages  - Build for GitHub Pages (deploys to /fund/ path)
 #
 # Alternative package managers (set PKG_MANAGER):
 #   make mvp-webapp PKG_MANAGER=pnpm    - Use pnpm
@@ -20,9 +33,9 @@ PKG_MANAGER ?= npm
 
 # Commands for different package managers
 define PKG_COMMANDS
-  npm: install="npm install"; build="npm run build"; dev="npm run dev"; test="npm run test"; lint="npm run lint"; typecheck="npm run type-check"; clean="rm -rf dist node_modules"
-  pnpm: install="pnpm install"; build="pnpm build"; dev="pnpm dev"; test="pnpm test"; lint="pnpm lint"; typecheck="pnpm type-check"; clean="pnpm exec rm -rf dist node_modules"
-  yarn: install="yarn"; build="yarn build"; dev="yarn dev"; test="yarn test"; lint="yarn lint"; typecheck="yarn type-check"; clean="yarn exec rm -rf dist node_modules"
+  npm: install="npm install"; build="npm run build"; dev="npm run dev"; test="npm run test"; lint="npm run lint"; typecheck="npm run type-check"; clean="rm -rf dist node_modules .vite"
+  pnpm: install="pnpm install"; build="pnpm build"; dev="pnpm dev"; test="pnpm test"; lint="pnpm lint"; typecheck="pnpm type-check"; clean="pnpm exec rm -rf dist node_modules .vite"
+  yarn: install="yarn"; build="yarn build"; dev="yarn dev"; test="yarn test"; lint="yarn lint"; typecheck="yarn type-check"; clean="yarn exec rm -rf dist node_modules .vite"
 endef
 
 # Parse package manager commands
@@ -34,7 +47,8 @@ LINT := $(shell echo "$${PKG_COMMANDS}" | grep "^$(PKG_MANAGER):" | sed 's/.*lin
 TYPECHECK := $(shell echo "$${PKG_COMMANDS}" | grep "^$(PKG_MANAGER):" | sed 's/.*typecheck="\([^"]*\)".*/\1/')
 CLEAN := $(shell echo "$${PKG_COMMANDS}" | grep "^$(PKG_MANAGER):" | sed 's/.*clean="\([^"]*\)".*/\1/')
 
-.PHONY: mvp-webapp mvp-serve mvp-build mvp-test mvp-test-coverage mvp-lint mvp-clean mvp-typecheck help check-env
+.PHONY: all help check-env pwa-icons cap-init cap-add-macos cap-add-ios cap-add-android cap-sync cap-open cap-build pwa-preview github-pages \
+        mvp-webapp mvp-serve mvp-build mvp-test mvp-test-coverage mvp-lint mvp-clean mvp-typecheck
 
 # Default target
 all: mvp-webapp
@@ -51,9 +65,11 @@ help: ## Show this help message
 	@echo "  make mvp-webapp              # Build with npm (default)"
 	@echo "  make mvp-webapp PKG_MANAGER=pnpm  # Build with pnpm"
 	@echo "  make mvp-serve               # Start dev server"
-	@echo "  make mvp-test                # Run tests"
+	@echo "  make pwa-icons               # Generate PWA icons"
+	@echo "  make cap-add-macos           # Add macOS Capacitor platform"
+	@echo "  make github-pages           # Build for GitHub Pages"
 
-## check-env ────────────────────────────────────────────────────────────────────
+## check-env ───────────────────────────────────────────────────────────────────
 check-env: ## Check if required tools are installed
 	@echo "Checking environment..."
 	@which node > /dev/null || (echo "Error: Node.js is required" && exit 1)
@@ -61,47 +77,101 @@ check-env: ## Check if required tools are installed
 	@which $(PKG_MANAGER) > /dev/null || echo "Warning: $(PKG_MANAGER) not found, falling back to npm"
 	@echo "  ✓ Package manager: $(PKG_MANAGER)"
 
-## mvp-webapp ──────────────────────────────────────────────────────────────────
+## PWA Targets ──────────────────────────────────────────────────────────────
+pwa-icons: ## Generate PWA icons
+	@echo "Generating PWA icons..."
+	@node scripts/generate-icons.mjs
+
+## GitHub Pages Build ────────────────────────────────────────────────────────
+github-pages: check-env ## Build for GitHub Pages deployment
+	@echo "Building for GitHub Pages (BASE_PATH=/fund/)..."
+	cd webapp && BASE_PATH=/fund/ $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) run build
+	@echo "  ✓ GitHub Pages build complete! Output in webapp/dist/"
+	@echo "  → Deploy webapp/dist/ to GitHub Pages at /fund/ path"
+
+pwa-preview: mvp-build ## Preview production PWA locally
+	@echo "Starting preview server..."
+	cd webapp && npx serve dist -p 4173
+
+## Capacitor Targets ──────────────────────────────────────────────────────────
+cap-init: check-env ## Initialize Capacitor in the webapp
+	@echo "Initializing Capacitor..."
+	@cd webapp && npm install @capacitor/core @capacitor/cli
+	@cd webapp && npx cap init Fund com.fund.app --web-dir=dist
+	@echo "  ✓ Capacitor initialized"
+
+cap-add-macos: cap-init ## Add macOS platform
+	@echo "Adding macOS platform..."
+	@cd webapp && npm install @capacitor/macos
+	@cd webapp && npx cap add macos
+	@echo "  ✓ macOS platform added. Run 'make cap-sync' to sync."
+
+cap-add-ios: cap-init ## Add iOS platform
+	@echo "Adding iOS platform..."
+	@cd webapp && npm install @capacitor/ios
+	@cd webapp && npx cap add ios
+	@echo "  ✓ iOS platform added. Run 'make cap-sync' to sync."
+
+cap-add-android: cap-init ## Add Android platform
+	@echo "Adding Android platform..."
+	@cd webapp && npm install @capacitor/android
+	@cd webapp && npx cap add android
+	@echo "  ✓ Android platform added. Run 'make cap-sync' to sync."
+
+cap-sync: mvp-build ## Sync web assets to native projects
+	@echo "Syncing to native platforms..."
+	@cd webapp && npx cap sync
+	@echo "  ✓ Sync complete"
+
+cap-open: ## Open native project in IDE (Xcode/Android Studio)
+	@echo "Opening native project..."
+	@cd webapp && npx cap open macos
+
+cap-build: mvp-build cap-sync ## Full build: web + native sync
+	@echo "  ✓ Full Capacitor build complete"
+	@echo "  → Native projects synced. Open with 'make cap-open'"
+
+## Webapp Targets ────────────────────────────────────────────────────────────
 mvp-webapp: check-env ## Build MVP webapp (development)
 	@echo "Building MVP webapp with $(PKG_MANAGER)..."
 	@echo "  → Installing dependencies..."
-	cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) install
+	@cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) $(INSTALL)
 	@echo "  → Building..."
-	cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) run build
+	@cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) run build
 	@echo "  ✓ Build complete!"
 
 mvp-serve: check-env ## Serve MVP webapp in development mode
 	@echo "Starting development server..."
-	cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) $(DEV)
+	@cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) $(DEV)
 
 mvp-build: check-env ## Production build of MVP webapp
 	@echo "Production build with $(PKG_MANAGER)..."
-	cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) install
-	cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) run build
+	@cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) $(INSTALL)
+	@cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) run build
 	@echo "  ✓ Production build complete!"
 
 ## mvp-test ─────────────────────────────────────────────────────────────────────
 mvp-test: check-env ## Run tests for MVP webapp
 	@echo "Running tests..."
-	cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) run test -- --run
+	@cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) run test -- --run
 
 mvp-test-coverage: check-env ## Run tests with coverage
 	@echo "Running tests with coverage..."
-	cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) run test:coverage
+	@cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) run test:coverage
 
 ## mvp-lint ─────────────────────────────────────────────────────────────────────
 mvp-lint: mvp-typecheck ## Lint code
 	@echo "Linting code..."
-	cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) $(LINT)
+	@cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) $(LINT)
 
 mvp-typecheck: ## Type check only
 	@echo "Type checking..."
-	cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) $(TYPECHECK)
+	@cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) $(TYPECHECK)
 
 ## mvp-clean ─────────────────────────────────────────────────────────────────────
 mvp-clean: ## Clean build artifacts
 	@echo "Cleaning build artifacts..."
-	cd webapp && rm -rf dist node_modules .vite
+	@cd webapp && rm -rf dist node_modules .vite
 	@echo "  ✓ Clean complete."
 
 ## Version-specific builds (for future expansion)
@@ -114,5 +184,5 @@ build-$(VERSION): check-env
 # Meta targets for version management
 versions:
 	@echo "Available versions:"
-	@echo "  mvp-webapp    - MVP web application (React + TypeScript)"
+	@echo "  mvp-webapp    - MVP web application (React + TypeScript + PWA)"
 	@ls -d */ 2>/dev/null || echo "  (no other versions yet)"

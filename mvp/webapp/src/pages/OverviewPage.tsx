@@ -57,7 +57,7 @@ export function OverviewPage() {
       {/* Charts */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
         gap: 'var(--space-6)',
         marginBottom: 'var(--space-8)',
       }}>

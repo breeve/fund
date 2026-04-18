@@ -1,15 +1,18 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
 const NAV_ITEMS = [
-  { path: '/overview', label: '资产总览', icon: '📊' },
-  { path: '/assets', label: '资产列表', icon: '💰' },
-  { path: '/fund', label: '基金诊断', icon: '📈' },
-  { path: '/settings', label: '设置', icon: '⚙️' },
+  { path: '/overview', label: '总览', labelEn: 'Overview', icon: '📊' },
+  { path: '/assets', label: '资产', labelEn: 'Assets', icon: '💰' },
+  { path: '/fund', label: '基金', labelEn: 'Funds', icon: '📈' },
+  { path: '/settings', label: '设置', labelEn: 'Settings', icon: '⚙️' },
 ];
 
 export function Layout({ children }: { children?: React.ReactNode }) {
+  const location = useLocation();
+
   return (
     <div className="app-layout">
+      {/* Desktop Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-header">
           <div className="sidebar-logo">F</div>
@@ -38,9 +41,33 @@ export function Layout({ children }: { children?: React.ReactNode }) {
         </div>
       </aside>
 
+      {/* Mobile Header */}
+      <header className="mobile-header">
+        <div className="mobile-header-logo">F</div>
+        <div className="mobile-header-title">家庭资产</div>
+      </header>
+
+      {/* Main Content */}
       <main className="main-content">
         {children ?? <Outlet />}
       </main>
+
+      {/* Mobile Bottom Tab Bar */}
+      <nav className="mobile-tab-bar">
+        {NAV_ITEMS.map((item) => {
+          const isActive = location.pathname.startsWith(item.path);
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={`mobile-tab-item ${isActive ? 'active' : ''}`}
+            >
+              <span className="mobile-tab-icon">{item.icon}</span>
+              <span className="mobile-tab-label">{item.label}</span>
+            </NavLink>
+          );
+        })}
+      </nav>
     </div>
   );
 }

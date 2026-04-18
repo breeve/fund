@@ -4,6 +4,7 @@ node_modules/
 # Build outputs
 mvp/webapp/dist/
 mvp/webapp/node_modules/
+mvp/webapp/dev-dist/
 
 # IDE
 .idea/

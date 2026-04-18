@@ -4,34 +4,41 @@
 
 ### 1.1 整体架构
 
-**纯客户端架构，无后端服务**。所有业务逻辑、数据存储、外部 API 调用（行情数据、LLM）均在客户端本地完成。
+**跨端共享架构，核心业务逻辑统一实现，通过各平台原生容器运行。**
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        客户端层                              │
-│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐    │
-│  │ iOS    │ │ Web    │ │macOS   │ │Windows │ │  CLI   │    │
-│  │ iPhone │ │(PWA)   │ │        │ │        │ │        │    │
-│  └────┬───┘ └────┬───┘ └────┬───┘ └────┬───┘ └───┬────┘    │
-│       │          │          │          │         │          │
-└───────┼──────────┼──────────┼──────────┼─────────┼──────────┘
-        │          │          │          │         │
-        │  ─ ─ ─ ─ 所有逻辑运行在客户端本地 ─ ─ ─ ─          │
-        │                                                   │
-        │  ┌─────────────────────────────────────────┐      │
-        │  │              客户端内模块                 │      │
-        │  │  ┌─────────┐ ┌─────────┐ ┌──────────┐  │      │
-        │  │  │ 资产服务 │ │ 分析服务 │ │基金诊断服务│  │      │
-        │  │  └────┬────┘ └────┬────┘ └────┬─────┘  │      │
-        │  │       │           │           │        │      │
-        │  │  ┌────┴───────────┴───────────┴────┐  │      │
-        │  │  │       LLM 接入层（可配置）       │  │      │
-        │  │  └─────────────────────────────────┘  │      │
-        │  │  ┌────────┐ ┌────────┐ ┌──────────┐  │      │
-        │  │  │JSON存储│ │配置管理 │ │行情API适配│  │      │
-        │  │  └────────┘ └────────┘ └──────────┘  │      │
-        │  └─────────────────────────────────────────┘      │
-        └─────────────────────────────────────────────────────┘
+│                      跨端架构层                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │   macOS     │  │    iOS      │  │    Android  │         │
+│  │  (Capacitor │  │  (Capacitor │  │  (Capacitor │         │
+│  │   + Swift)  │  │   + Swift)  │  │    + Kotlin)│         │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘         │
+│         │                │                │                 │
+│  ┌──────┴────────────────┴────────────────┴──────┐        │
+│  │              WebView (共享 UI 层)               │        │
+│  └──────────────────────┬─────────────────────────┘        │
+│                         │                                   │
+│  ┌──────────────────────┴─────────────────────────┐        │
+│  │           共享业务逻辑 (TypeScript)             │        │
+│  │  ┌─────────┐ ┌─────────┐ ┌──────────┐         │        │
+│  │  │资产服务 │ │分析服务 │ │基金诊断服务│         │        │
+│  │  └────┬────┘ └────┬────┘ └────┬─────┘         │        │
+│  │       │           │           │                │        │
+│  │  ┌────┴───────────┴───────────┴────┐          │        │
+│  │  │       LLM 接入层（可配置）       │          │        │
+│  │  └─────────────────────────────────┘          │        │
+│  └─────────────────────────────────────────────────┘        │
+│                         │                                   │
+│  ┌──────────────────────┴─────────────────────────┐        │
+│  │           数据层 (iCloud Storage)               │        │
+│  │  ┌────────┐ ┌────────┐ ┌──────────┐          │        │
+│  │  │JSON存储│ │配置管理 │ │行情API适配│          │        │
+│  │  └────────┘ └────────┘ └──────────┘          │        │
+│  └─────────────────────────────────────────────────┘        │
+└─────────────────────────────────────────────────────────────┘
                            │
               直接调用外部 API（可配置）
                            │
@@ -44,21 +51,38 @@
 
 | 层级 | 技术选型 | 理由 |
 |------|----------|------|
-| **后端** | Go / Rust / Node.js | 高性能、易部署、跨平台 |
-| **数据存储** | JSON 文件（本地） | 轻量、无需安装、人类可读、无后端依赖 |
+| **核心框架** | Capacitor | 跨平台原生容器，Web 技术栈输出原生应用 |
+| **共享代码** | TypeScript | 业务逻辑、类型定义跨平台复用 |
+| **状态管理** | Zustand | Web 端状态管理，可跨端共享 |
+| **数据存储** | iCloud Drive (JSON) | 云端同步，多设备共享 |
 | **API 协议** | REST + JSON-RPC (CLI) | 简单直观，CLI 优先 JSON-RPC |
 | **认证** | JWT + 设备指纹 | 无状态，支持多设备 |
 | **行情 API 接入** | 插件化适配器 | 见 2.3 节 |
 | **LLM 接入** | OpenAI 兼容接口 + 可配置 Provider | 见 2.4 节 |
-| **iOS** | Swift + SwiftUI | 原生体验 |
-| **macOS** | Swift + SwiftUI | 与 iOS 共用代码 >80% |
-| **Windows** | Tauri + React/Preact 或 Flutter | 与 Web 技术栈统一，减少维护成本 |
-| **Web** | React/Vue + PWA | 响应式，渐进式应用 |
-| **CLI** | Go/Rust 原生实现 | 轻量、快速，适合开发者 |
+| **iOS** | Capacitor + Swift | 原生体验，iCloud 深度集成 |
+| **macOS** | Capacitor + Swift | 与 iOS 共用代码，与 Web 共享业务逻辑 |
+| **Android** | Capacitor + Kotlin | 原生体验，Google Drive 同步（待扩展） |
+| **Web** | React/Vite + PWA | 响应式，渐进式应用 |
 
-### 1.3 数据持久化与同步策略
+### 1.3 技术选型详细说明
 
-#### 1.3.1 本地持久化（所有客户端）
+#### 为什么选择 Capacitor？
+
+| 维度 | 方案对比 | 选择理由 |
+|------|----------|----------|
+| **代码复用** | Flutter (Dart) | 需要重写所有 UI，不复用现有 Web 代码 |
+| **代码复用** | React Native | 需要原生模块编写，，不如 Capacitor 简洁 |
+| **代码复用** | Tauri + Web | 适合桌面端，但 iOS/Android 支持不如 Capacitor 成熟 |
+| **代码复用** | **Capacitor + Web** | ✅ Web 代码直接输出原生应用，iOS/macOS/Android 通吃 |
+| **原生能力** | Capacitor | 直接调用原生 API（相机、文件系统、iCloud） |
+| **生态** | Capacitor | Ionic 生态成熟，社区活跃 |
+| **维护成本** | Capacitor | 一套代码，四端输出，维护成本低 |
+
+### 1.4 数据持久化与同步策略
+
+### 1.4 数据持久化与同步策略
+
+#### 1.4.1 本地持久化（所有客户端）
 
 **所有需要持久化的数据全部存储在本地，客户端可完全离线运行。**
 
@@ -76,7 +100,7 @@
 - 关键字段（金额、账户号）在应用层加密后存储
 - 备份文件可选择加密导出
 
-#### 1.3.2 跨设备同步方案
+#### 1.4.2 跨设备同步方案
 
 **所有平台: iCloud 同步**
 
@@ -106,7 +130,7 @@
 > - **Web (PWA)**: 通过 iCloud Drive 或第三方同步工具同步 JSON 文件
 > - **CLI**: 配置文件目录指向 iCloud Drive 同步目录
 
-#### 1.3.3 数据导出与备份
+#### 1.4.3 数据导出与备份
 
 | 导出方式 | 格式 | 触发条件 |
 |----------|------|----------|
@@ -130,7 +154,7 @@ fund-cli import --input=backup_20240417.json
 fund-cli info --data-size
 ```
 
-#### 1.3.4 自托管同步服务（可选，Phase 4）
+#### 1.4.4 自托管同步服务（可选，Phase 4）
 
 对于 Windows/Web/CLI 用户，如需多设备同步，可部署轻量同步服务。**Phase 4 实现，当前 MVP 不包含。**
 
@@ -397,213 +421,128 @@ llm:
 
 ## 三、客户端实现
 
-### 3.1 客户端对比
+### 3.1 MVP 优先级：macOS + WebApp (PWA)
 
-| 维度 | iOS | macOS | Windows | Web | CLI |
-|------|-----|-------|---------|-----|-----|
-| **实现技术** | Swift/SwiftUI | Swift/SwiftUI | Tauri+Preact | React/Vue+PWA | Go/Rust 原生 |
-| **代码复用** | — | 与 iOS 共享 ~80% | 与 Web 共享 ~70% | 核心组件共享 | — |
-| **安装包大小** | ~20MB | ~25MB | ~15MB | 即开即用 | < 5MB |
-| **离线能力** | 完整离线 | 完整离线 | 完整离线 | 部分离线 (PWA) | 完整离线 |
-| **推送通知** | ✅ Apple Push | ✅ APNs | ✅ FCM/WNS | ✅ Web Push | ❌ |
-| **生物认证** | ✅ Face ID / Touch ID | ✅ Touch ID | ✅ Windows Hello | ✅ WebAuthn | ❌ |
-| **文件系统** | App Sandbox | App Sandbox | 沙盒/文档库 | IndexedDB | 完整读写 |
-| **目标用户** | 移动场景 | Mac 深度用户 | Windows 用户 | 跨平台尝鲜 / 无需安装 | 开发者 / 极客 |
+**当前阶段（Phase 1）优先实现 macOS + WebApp，均通过 Capacitor 输出。**
 
-### 3.2 iOS 客户端
+| 平台 | 技术栈 | MVP 状态 | 说明 |
+|------|--------|----------|------|
+| **macOS** | Capacitor + Swift | ✅ MVP | 通过 Xcode 构建为 .app |
+| **WebApp (PWA)** | React + Vite + Capacitor | ✅ MVP | 可独立运行，也可打包为原生应用 |
+| iOS | Capacitor + Swift | Phase 2 | 与 macOS 共用大部分代码 |
+| Android | Capacitor + Kotlin | Phase 2 | 与 iOS 共用大部分代码 |
+
+### 3.2 项目结构（Capacitor 跨端架构）
 
 ```
-fund-ios/
-├── App/
-│   ├── FundApp.swift
-│   └── ContentView.swift
-├── Features/
-│   ├── AssetEntry/           # 资产录入
-│   ├── AssetOverview/        # 资产总览
-│   ├── AssetAnalysis/        # 资产分析
-│   └── FundDiagnosis/        # 基金诊断
-├── Core/
-│   ├── Models/
-│   ├── Services/
-│   ├── Repositories/
-│   └── Adapters/             # API 适配器
-├── Shared/                   # 与 macOS 共用
-│   ├── DesignSystem/
-│   └── BusinessLogic/
-└── Resources/
-    ├── Assets.xcassets
-    └── Localizable.xcstrings
-```
-
-**关键特性**:
-- SwiftUI 声明式 UI，与 macOS 代码高度复用
-- 使用本地 JSON 文件存储，通过 iCloud Drive 自动同步
-- 支持 Face ID / Touch ID 解锁应用
-- Widget 支持：净资产、资产变动一目了然
-- 支持 Siri Shortcuts：「查看本月资产分析」
-
-### 3.3 macOS 客户端
-
-```
-fund-macos/
-├── App/
-│   ├── FundMacApp.swift
-│   └── MainMenu.swift
-├── Features/
-│   ├── AssetOverview/        # 支持多窗口
-│   ├── AssetAnalysis/
-│   ├── FundDiagnosis/
-│   └── Settings/             # 完整的系统偏好设置
-├── Platform/                 # macOS 特定
-│   ├── MenuBar/
-│   ├── TouchBar/             # 支持 Touch Bar
-│   └── Spotlight/            # Spotlight 搜索集成
-└── Shared/
-    └── (复用 iOS 的 Shared 模块)
-```
-
-**关键特性**:
-- 多窗口支持：分析报告、基金诊断可独立窗口
-- Menu Bar 模式：显示净资产快查，不开主窗口
-- Touch Bar 支持：快捷录入、数据刷新
-- 键盘导航完整支持
-- 与 macOS 系统深度集成：通知、Spotlight、Handoff
-
-### 3.4 Windows 客户端
-
-使用 **Tauri + Preact** 实现，与 Web 共享大部分代码。
-
-```
-fund-windows/           # Tauri 项目
-├── src/                 # 与 web/ 共用
-│   ├── App.tsx
-│   ├── features/
-│   └── components/
-├── src-tauri/
-│   ├── src/
-│   │   └── main.rs
-│   ├── Cargo.toml
-│   └── tauri.conf.json
-└── web/                 # Web 版本代码
-```
-
-**关键特性**:
-- 使用系统原生窗口，体积小（~15MB 安装包）
-- 支持 Windows Hello 登录
-- 任务栏数据刷新、跳转列表
-- 与 Web 版共用 `src/` 目录，70% 代码复用
-
-### 3.5 Web 客户端
-
-```
-fund-web/
-├── public/
-├── src/
-│   ├── App.tsx
-│   ├── features/
-│   │   ├── asset/
-│   │   ├── analysis/
-│   │   └── fund/
-│   ├── components/
-│   │   ├── charts/           # ECharts / Recharts
-│   │   ├── forms/
-│   │   └── ui/               # 设计系统组件
-│   ├── hooks/
-│   ├── stores/               # Zustand 状态管理
-│   ├── services/
-│   │   ├── api.ts            # API 调用
-│   │   └── llm.ts            # LLM 调用封装
-│   └── i18n/
-│       ├── zh-CN/
-│       └── en-US/
-├── vite.config.ts
+fund/
+├── src/                          # 共享业务逻辑（所有平台共用）
+│   ├── components/               # UI 组件
+│   ├── pages/                    # 页面
+│   ├── store/                    # Zustand 状态管理
+│   ├── types/                    # TypeScript 类型定义
+│   ├── services/                 # 业务服务
+│   │   ├── storage.ts            # iCloud/本地存储抽象
+│   │   ├── market.ts             # 行情数据适配器
+│   │   └── llm.ts                # LLM 调用封装
+│   └── styles/                   # 样式
+├── macos/                        # macOS 原生壳
+│   ├── FundMac/                  # XcodeGen 项目
+│   └── project.yml
+├── ios/                          # iOS 原生壳（Phase 2）
+├── android/                     # Android 原生壳（Phase 2）
+├── capacitor.config.ts          # Capacitor 配置
+├── vite.config.ts               # Vite 配置
 └── package.json
 ```
 
-**关键特性**:
-- Vite + React 18 + TypeScript
-- PWA 支持：Service Worker、离线缓存、桌面图标安装
-- 响应式设计：桌面端、平板端、手机浏览器均可使用
-- 图表库：ECharts（国内生态好）或 Recharts
-- 支持暗色/亮色主题
-- 完整的国际化（中文/英文，可扩展）
+### 3.3 WebApp (PWA) 核心特性
 
-### 3.6 CLI 客户端
+| 特性 | 说明 |
+|------|------|
+| PWA 支持 | Service Worker、离线缓存、桌面图标安装 |
+| 响应式设计 | 桌面端、平板端、手机浏览器均可使用 |
+| 图表库 | ECharts（国内生态好）或 Recharts |
+| 主题 | 支持暗色/亮色主题 |
+| 国际化 | 中文/英文，可扩展 |
 
-```
-fund-cli/
-├── cmd/
-│   ├── root.go
-│   ├── asset/
-│   │   ├── add.go
-│   │   ├── list.go
-│   │   ├── update.go
-│   │   └── delete.go
-│   ├── analysis/
-│   │   ├── report.go
-│   │   ├── health.go
-│   │   └── recommend.go
-│   ├── fund/
-│   │   ├── search.go
-│   │   ├── info.go
-│   │   ├── hold.go
-│   │   └── diagnose.go
-│   └── config/
-│       ├── show.go
-│       ├── set.go
-│       └── test.go           # 测试 API 连接
-├── pkg/
-│   ├── api/                  # REST API 客户端
-│   ├── local/                # 本地 JSON 文件操作
-│   └── printer/              # 输出格式化 (table / json / yaml)
-└── main.go
-```
+### 3.4 WebApp 运行方式
 
-**交互模式**:
+#### 环境要求
+
+- Node.js >= 18
+- npm / pnpm / yarn
+
+#### 运行命令
 
 ```bash
-# 交互式模式
-$ fund-cli
-fund> asset add
-  名称: 沪深300指数基金
-  类型: 基金
-  代码: 000961
-  金额: 50000
-  成本: 1.2345
-> 保存成功
+# 进入 webapp 目录
+cd mvp/webapp
 
-# 非交互式（管道友好）
-$ fund-cli asset list --format=json | jq '.[] | select(.category=="基金")'
-$ fund-cli analysis report --period=monthly | fund-cli format markdown > report.md
+# 安装依赖
+npm install
 
-# 查看帮助
-$ fund-cli fund info 000961 --help
+# 开发模式（热重载）
+npm run dev
+
+# 生产构建
+npm run build
+
+# 运行测试
+npm run test
+
+# 类型检查
+npm run type-check
+
+# 代码检查
+npm run lint
 ```
 
-**关键特性**:
-- 支持交互式 REPL 和管道式单命令两种模式
-- 输出格式：table（默认）、json、yaml、csv
-- 配色输出（终端支持颜色）
-- 支持 Bash/Zsh 自动补全脚本生成
-- 与编辑器集成提示（ LSP-like 信息）
-- 配置管理命令：查看/设置 API Key、切换数据源
+#### 使用 Makefile
 
-### 3.7 多客户端数据共享
+```bash
+# 构建
+make mvp-webapp
 
-所有客户端共用同一个本地 JSON 文件格式存储数据。
+# 开发模式
+make mvp-serve
 
+# 测试
+make mvp-test
+
+# 类型检查
+make mvp-lint
+
+# 清理构建产物
+make mvp-clean
 ```
-本地数据文件:
-  macOS/Linux:  ~/.fund/data/assets.json   (资产数据)
-                ~/.fund/data/config.json   (配置)
-                ~/.fund/data/cache/        (缓存)
-  Windows:      %USERPROFILE%\.fund\data\  (同上)
-  iOS:          App Documents/fund/        (Sandbox + iCloud)
-  Web:          IndexedDB (浏览器本地)
-  CLI:          ~/.fund/                   (原生文件系统)
 
-iCloud 同步:   iOS/macOS 自动通过 iCloud Drive 同步
-                其他平台无自动同步，需手动备份
+#### PWA 安装
+
+生产构建后，可通过以下方式安装为桌面应用：
+
+1. **macOS**: 构建后生成 `.app` 或通过 Safari 手动添加到应用库
+2. **Windows**: 使用 PWABuilder 打包为 `.exe`
+3. **Android**: 通过 Chrome "添加到主屏幕"
+4. **iOS**: 通过 Safari "添加到主屏幕"
+
+#### Capacitor 打包（完整跨端）
+
+```bash
+# 安装 Capacitor
+npm install @capacitor/core @capacitor/cli @capacitor/macos
+
+# 初始化
+npx cap init FundMac com.fund.macos --web-dir=dist
+
+# 添加 macOS 平台
+npx cap add macos
+
+# 同步 Web 资源到原生项目
+npx cap sync macos
+
+# 构建 macOS 应用
+npx cap open macos
 ```
 
 ## 四、模块接口设计
@@ -834,18 +773,19 @@ image_parsing:
 
 **做**
 
-- 客户端：Web (React/PWA) + CLI
-- 本地存储：JSON 文件
+- 客户端：WebApp (PWA) + macOS（Capacitor 跨端）
+- 本地存储：iCloud Drive（JSON 文件同步）
 - 图片解析：OCR + LLM（可配置）
 - 基金数据：可配置适配器（MVP 默认 AKShare）
 - LLM：可配置适配器（MVP 默认 OpenAI）
 
 **不做**
 
-- iOS/macOS/Windows 客户端（Phase 2+）
-- 云端同步（Phase 4+）
-- 资产分析（Phase 5+）
-- 通知推送（Phase 2+）
+- iOS/Android 原生客户端（Phase 2）
+- Windows 客户端（Phase 3）
+- 云端同步服务（Phase 4）
+- 资产深度分析（Phase 5）
+- 通知推送（Phase 2）
 
 ### 6.4 MVP 数据模型
 
@@ -877,8 +817,8 @@ Asset (资产)
 
 | 阶段 | 内容 | 建议优先级 |
 |------|------|------------|
-| **Phase 1** | Web + CLI (MVP) | 高 — 快速验证核心功能 |
-| **Phase 2** | iOS + macOS | 高 — 覆盖移动和桌面核心用户 |
-| **Phase 3** | Windows | 中 — 扩大用户覆盖 |
-| **Phase 4** | 云端同步 | 中 — 多设备数据同步 |
+| **Phase 1** | WebApp (PWA) + macOS（Capacitor 跨端） | 高 — 快速验证核心功能 |
+| **Phase 2** | iOS + Android 原生客户端 | 高 — 覆盖移动和桌面核心用户 |
+| **Phase 3** | Windows 客户端 | 中 — 扩大用户覆盖 |
+| **Phase 4** | 云端同步服务（iCloud 多设备） | 中 — 多设备数据同步 |
 | **Phase 5** | 高级分析 + LLM | 中 — 深度功能差异化 |

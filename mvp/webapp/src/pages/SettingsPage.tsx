@@ -1,12 +1,15 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useConfigStore, MARKET_DATA_PROVIDERS, LLM_PROVIDERS } from '@/store';
 import { saveAs } from 'file-saver';
 import { useAssetStore } from '@/store';
+import type { Asset } from '@/types';
 
 export function SettingsPage() {
   const { config, preferences, setTheme, setLocale, setDefaultView, setShowTips } = useConfigStore();
-  const { assets } = useAssetStore();
+  const { assets, addAsset } = useAssetStore();
   const [exportStatus, setExportStatus] = useState<string>('');
+  const [importStatus, setImportStatus] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = async (format: 'json' | 'csv') => {
     try {
@@ -36,6 +39,76 @@ export function SettingsPage() {
       setTimeout(() => setExportStatus(''), 3000);
     } catch {
       setExportStatus('导出失败');
+    }
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      let importedAssets: Asset[] = [];
+
+      if (file.name.endsWith('.json')) {
+        const parsed = JSON.parse(text);
+        importedAssets = parsed.assets || [];
+      } else if (file.name.endsWith('.csv')) {
+        // Parse CSV
+        const lines = text.split('\n').filter(line => line.trim());
+        if (lines.length < 2) {
+          setImportStatus('CSV 文件格式错误');
+          return;
+        }
+        // Skip header, parse data rows
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i];
+          if (!line) continue;
+          const values = line.split(',').map(v => v.replace(/^"|"$/g, '').trim());
+          if (values.length >= 7 && values[0] && values[1]) {
+            const asset: Partial<Asset> = {
+              name: values[0],
+              category: values[1] as Asset['category'],
+              subType: values[2] ?? '',
+              amount: parseFloat(values[3] ?? '') || 0,
+              currency: values[4] || 'CNY',
+              tags: values[5] ? values[5].split(';') : [],
+              notes: values[6] ?? '',
+              createdAt: values[7] || new Date().toISOString(),
+              updatedAt: values[8] || new Date().toISOString(),
+            };
+            if (asset.name && asset.category) {
+              importedAssets.push(asset as Asset);
+            }
+          }
+        }
+      }
+
+      if (importedAssets.length === 0) {
+        setImportStatus('未找到可导入的资产数据');
+        return;
+      }
+
+      // Add imported assets to store
+      let successCount = 0;
+      for (const assetData of importedAssets) {
+        try {
+          addAsset(assetData);
+          successCount++;
+        } catch {
+          // Skip invalid assets
+        }
+      }
+
+      setImportStatus(`成功导入 ${successCount} 笔资产`);
+      setTimeout(() => setImportStatus(''), 3000);
+    } catch {
+      setImportStatus('导入失败，请检查文件格式');
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -199,10 +272,22 @@ export function SettingsPage() {
           <button className="btn btn-secondary" onClick={() => handleExport('csv')}>
             📥 导出 CSV
           </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept=".json,.csv"
+            onChange={handleImport}
+            style={{ display: 'none' }}
+          />
+          <button className="btn btn-secondary" onClick={() => fileInputRef.current?.click()}>
+            📤 导入数据
+          </button>
         </div>
 
-        {exportStatus && (
-          <div className="badge badge-success">{exportStatus}</div>
+        {(exportStatus || importStatus) && (
+          <div className={`badge ${exportStatus ? 'badge-success' : importStatus.includes('失败') ? 'badge-danger' : 'badge-success'}`}>
+            {exportStatus || importStatus}
+          </div>
         )}
 
         <div style={{ marginTop: 'var(--space-4)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--color-border)' }}>

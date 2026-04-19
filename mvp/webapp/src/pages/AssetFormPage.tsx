@@ -20,17 +20,39 @@ interface FormData {
   holdingPurpose?: '自用' | '投资';
   status?: '自住' | '出租' | '空置';
   monthlyRent?: string;
+  leaseEndDate?: string;
+  loanAmount?: string;
+  loanRate?: string;
+  loanRemainingTerm?: string;
+  depreciationYears?: string;
   productCode?: string;
   quantity?: string;
   costPrice?: string;
   currentPrice?: string;
+  insuranceCompany?: string;
+  policyNumber?: string;
   insuranceType?: string;
   coverageAmount?: string;
   annualPremium?: string;
+  paymentYears?: string;
+  paidYears?: string;
+  remainingPaymentYears?: string;
+  coveragePeriod?: string;
+  cashValue?: string;
+  waitingPeriod?: string;
+  exclusionSummary?: string;
   totalAmount?: string;
+  paidPrincipal?: string;
   remainingPrincipal?: string;
+  remainingTerm?: string;
   interestRate?: string;
+  rateType?: '浮动利率' | '固定利率';
   repaymentMethod?: '等额本息' | '等额本金' | '先息后本';
+  monthlyPayment?: string;
+  nextPaymentDate?: string;
+  creditor?: string;
+  collateral?: string;
+  isCollateralized?: boolean;
   nature?: '良性' | '恶性' | '待定';
 }
 
@@ -41,6 +63,11 @@ const initialFormData: FormData = {
   amount: '',
   notes: '',
   tags: '',
+  coveragePeriod: '一年期',
+  rateType: '浮动利率',
+  repaymentMethod: '等额本息',
+  nature: '待定',
+  isCollateralized: false,
 };
 
 export function AssetFormPage() {
@@ -73,17 +100,38 @@ export function AssetFormPage() {
         holdingPurpose: 'holdingPurpose' in currentAsset ? currentAsset.holdingPurpose : undefined,
         status: 'status' in currentAsset ? currentAsset.status : undefined,
         monthlyRent: 'monthlyRent' in currentAsset ? String(currentAsset.monthlyRent ?? '') : undefined,
+        leaseEndDate: 'leaseEndDate' in currentAsset ? currentAsset.leaseEndDate : undefined,
+        loanAmount: 'loanAmount' in currentAsset ? String(currentAsset.loanAmount ?? '') : undefined,
+        loanRate: 'loanRate' in currentAsset ? String(currentAsset.loanRate ?? '') : undefined,
+        loanRemainingTerm: 'loanRemainingTerm' in currentAsset ? String(currentAsset.loanRemainingTerm ?? '') : undefined,
         productCode: 'productCode' in currentAsset ? currentAsset.productCode : undefined,
         quantity: 'quantity' in currentAsset ? String(currentAsset.quantity ?? '') : undefined,
         costPrice: 'costPrice' in currentAsset ? String(currentAsset.costPrice ?? '') : undefined,
         currentPrice: 'currentPrice' in currentAsset ? String(currentAsset.currentPrice ?? '') : undefined,
+        insuranceCompany: 'insuranceCompany' in currentAsset ? currentAsset.insuranceCompany : undefined,
+        policyNumber: 'policyNumber' in currentAsset ? currentAsset.policyNumber : undefined,
         insuranceType: 'insuranceType' in currentAsset ? currentAsset.insuranceType : undefined,
         coverageAmount: 'coverageAmount' in currentAsset ? String(currentAsset.coverageAmount ?? '') : undefined,
         annualPremium: 'annualPremium' in currentAsset ? String(currentAsset.annualPremium ?? '') : undefined,
+        paymentYears: 'paymentYears' in currentAsset ? String(currentAsset.paymentYears ?? '') : undefined,
+        paidYears: 'paidYears' in currentAsset ? String(currentAsset.paidYears ?? '') : undefined,
+        remainingPaymentYears: 'remainingPaymentYears' in currentAsset ? String(currentAsset.remainingPaymentYears ?? '') : undefined,
+        coveragePeriod: 'coveragePeriod' in currentAsset ? currentAsset.coveragePeriod : undefined,
+        cashValue: 'cashValue' in currentAsset ? String(currentAsset.cashValue ?? '') : undefined,
+        waitingPeriod: 'waitingPeriod' in currentAsset ? currentAsset.waitingPeriod : undefined,
+        exclusionSummary: 'exclusionSummary' in currentAsset ? currentAsset.exclusionSummary : undefined,
         totalAmount: 'totalAmount' in currentAsset ? String(currentAsset.totalAmount ?? '') : undefined,
+        paidPrincipal: 'paidPrincipal' in currentAsset ? String(currentAsset.paidPrincipal ?? '') : undefined,
         remainingPrincipal: 'remainingPrincipal' in currentAsset ? String(currentAsset.remainingPrincipal ?? '') : undefined,
+        remainingTerm: 'remainingTerm' in currentAsset ? String(currentAsset.remainingTerm ?? '') : undefined,
         interestRate: 'interestRate' in currentAsset ? String(currentAsset.interestRate ?? '') : undefined,
+        rateType: 'rateType' in currentAsset ? currentAsset.rateType : undefined,
         repaymentMethod: 'repaymentMethod' in currentAsset ? currentAsset.repaymentMethod : undefined,
+        monthlyPayment: 'monthlyPayment' in currentAsset ? String(currentAsset.monthlyPayment ?? '') : undefined,
+        nextPaymentDate: 'nextPaymentDate' in currentAsset ? currentAsset.nextPaymentDate : undefined,
+        creditor: 'creditor' in currentAsset ? currentAsset.creditor : undefined,
+        collateral: 'collateral' in currentAsset ? currentAsset.collateral : undefined,
+        isCollateralized: 'isCollateralized' in currentAsset ? currentAsset.isCollateralized : undefined,
         nature: 'nature' in currentAsset ? currentAsset.nature : undefined,
       });
     }
@@ -153,6 +201,12 @@ export function AssetFormPage() {
         holdingPurpose: formData.holdingPurpose ?? '自用',
         status: formData.status ?? '自住',
         monthlyRent: formData.monthlyRent ? parseFloat(formData.monthlyRent) : undefined,
+        leaseEndDate: formData.leaseEndDate,
+        loanAmount: formData.loanAmount ? parseFloat(formData.loanAmount) : undefined,
+        loanRate: formData.loanRate ? parseFloat(formData.loanRate) : undefined,
+        loanRemainingTerm: formData.loanRemainingTerm ? parseInt(formData.loanRemainingTerm) : undefined,
+        monthlyPayment: formData.monthlyPayment ? parseFloat(formData.monthlyPayment) : undefined,
+        depreciationYears: formData.depreciationYears ? parseInt(formData.depreciationYears) : undefined,
       });
     } else if (formData.category === 'financial') {
       Object.assign(assetData, {
@@ -162,12 +216,35 @@ export function AssetFormPage() {
         currentPrice: formData.currentPrice ? parseFloat(formData.currentPrice) : undefined,
         institution: formData.institution,
       });
+    } else if (formData.category === 'protection') {
+      Object.assign(assetData, {
+        insuranceCompany: formData.insuranceCompany,
+        policyNumber: formData.policyNumber,
+        insuranceType: formData.insuranceType as '健康险' | '意外险' | '寿险' | '年金险' | '社保/公积金',
+        coverageAmount: formData.coverageAmount ? parseFloat(formData.coverageAmount) : undefined,
+        annualPremium: formData.annualPremium ? parseFloat(formData.annualPremium) : undefined,
+        paymentYears: formData.paymentYears ? parseInt(formData.paymentYears) : undefined,
+        paidYears: formData.paidYears ? parseInt(formData.paidYears) : undefined,
+        remainingPaymentYears: formData.remainingPaymentYears ? parseInt(formData.remainingPaymentYears) : undefined,
+        coveragePeriod: formData.coveragePeriod as '终身' | `至${number}岁` | '一年期',
+        cashValue: formData.cashValue ? parseFloat(formData.cashValue) : undefined,
+        waitingPeriod: formData.waitingPeriod,
+        exclusionSummary: formData.exclusionSummary,
+      });
     } else if (formData.category === 'liability') {
       Object.assign(assetData, {
+        creditor: formData.creditor,
         totalAmount: formData.totalAmount ? parseFloat(formData.totalAmount) : undefined,
+        paidPrincipal: formData.paidPrincipal ? parseFloat(formData.paidPrincipal) : undefined,
         remainingPrincipal: formData.remainingPrincipal ? parseFloat(formData.remainingPrincipal) : undefined,
+        remainingTerm: formData.remainingTerm ? parseInt(formData.remainingTerm) : undefined,
         interestRate: formData.interestRate ? parseFloat(formData.interestRate) : undefined,
+        rateType: formData.rateType ?? '浮动利率',
         repaymentMethod: formData.repaymentMethod ?? '等额本息',
+        monthlyPayment: formData.monthlyPayment ? parseFloat(formData.monthlyPayment) : undefined,
+        nextPaymentDate: formData.nextPaymentDate,
+        collateral: formData.collateral,
+        isCollateralized: formData.isCollateralized,
         nature: formData.nature ?? '待定',
       });
     }
@@ -279,15 +356,83 @@ export function AssetFormPage() {
               </div>
             </div>
             {formData.status === '出租' && (
+              <>
+                <div className="form-group">
+                  <label className="form-label">月租金</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={formData.monthlyRent ?? ''}
+                    onChange={(e) => handleChange('monthlyRent', e.target.value)}
+                    placeholder="元/月"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">租约到期日</label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={formData.leaseEndDate ?? ''}
+                    onChange={(e) => handleChange('leaseEndDate', e.target.value)}
+                  />
+                </div>
+              </>
+            )}
+            <div className="form-group">
+              <label className="form-label">折旧年限</label>
+              <input
+                type="number"
+                className="form-input"
+                value={formData.depreciationYears ?? ''}
+                onChange={(e) => handleChange('depreciationYears', e.target.value)}
+                placeholder="年"
+              />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
               <div className="form-group">
-                <label className="form-label">月租金</label>
+                <label className="form-label">贷款金额</label>
                 <input
                   type="number"
                   className="form-input"
-                  value={formData.monthlyRent ?? ''}
-                  onChange={(e) => handleChange('monthlyRent', e.target.value)}
-                  placeholder="元/月"
+                  value={formData.loanAmount ?? ''}
+                  onChange={(e) => handleChange('loanAmount', e.target.value)}
+                  placeholder="元"
                 />
+              </div>
+              <div className="form-group">
+                <label className="form-label">贷款利率 (%)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="form-input"
+                  value={formData.loanRate ?? ''}
+                  onChange={(e) => handleChange('loanRate', e.target.value)}
+                  placeholder="如：4.3"
+                />
+              </div>
+            </div>
+            {formData.loanAmount && parseFloat(formData.loanAmount) > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+                <div className="form-group">
+                  <label className="form-label">剩余期限（月）</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={formData.loanRemainingTerm ?? ''}
+                    onChange={(e) => handleChange('loanRemainingTerm', e.target.value)}
+                    placeholder="月"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">月供</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={formData.monthlyPayment ?? ''}
+                    onChange={(e) => handleChange('monthlyPayment', e.target.value)}
+                    placeholder="元"
+                  />
+                </div>
               </div>
             )}
           </>
@@ -354,6 +499,26 @@ export function AssetFormPage() {
         return (
           <>
             <div className="form-group">
+              <label className="form-label">保险公司</label>
+              <input
+                type="text"
+                className="form-input"
+                value={formData.insuranceCompany ?? ''}
+                onChange={(e) => handleChange('insuranceCompany', e.target.value)}
+                placeholder="如：中国平安保险"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">保单号</label>
+              <input
+                type="text"
+                className="form-input"
+                value={formData.policyNumber ?? ''}
+                onChange={(e) => handleChange('policyNumber', e.target.value)}
+                placeholder="保单上的合同号"
+              />
+            </div>
+            <div className="form-group">
               <label className="form-label">险种类别</label>
               <select
                 className="form-input form-select"
@@ -389,6 +554,84 @@ export function AssetFormPage() {
                 />
               </div>
             </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+              <div className="form-group">
+                <label className="form-label">缴费年限</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={formData.paymentYears ?? ''}
+                  onChange={(e) => handleChange('paymentYears', e.target.value)}
+                  placeholder="如：20"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">已缴费年限</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={formData.paidYears ?? ''}
+                  onChange={(e) => handleChange('paidYears', e.target.value)}
+                  placeholder="如：5"
+                />
+              </div>
+            </div>
+            {formData.paymentYears && formData.paidYears && (
+              <div className="form-group">
+                <label className="form-label">剩余缴费年限</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={String((parseInt(formData.paymentYears) || 0) - (parseInt(formData.paidYears) || 0))}
+                  readOnly
+                  placeholder="自动计算"
+                />
+              </div>
+            )}
+            <div className="form-group">
+              <label className="form-label">保障期限</label>
+              <select
+                className="form-input form-select"
+                value={formData.coveragePeriod ?? '一年期'}
+                onChange={(e) => handleChange('coveragePeriod', e.target.value)}
+              >
+                <option value="一年期">一年期</option>
+                <option value="终身">终身</option>
+                <option value="至60岁">至60岁</option>
+                <option value="至70岁">至70岁</option>
+                <option value="至80岁">至80岁</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">现金价值</label>
+              <input
+                type="number"
+                className="form-input"
+                value={formData.cashValue ?? ''}
+                onChange={(e) => handleChange('cashValue', e.target.value)}
+                placeholder="元"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">等待期（天）</label>
+              <input
+                type="number"
+                className="form-input"
+                value={formData.waitingPeriod ?? ''}
+                onChange={(e) => handleChange('waitingPeriod', e.target.value)}
+                placeholder="如：90"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">责任免除摘要</label>
+              <textarea
+                className="form-input"
+                rows={2}
+                value={formData.exclusionSummary ?? ''}
+                onChange={(e) => handleChange('exclusionSummary', e.target.value)}
+                placeholder="主要责任免除条款..."
+              />
+            </div>
           </>
         );
 
@@ -396,14 +639,36 @@ export function AssetFormPage() {
         return (
           <>
             <div className="form-group">
-              <label className="form-label">贷款总额</label>
+              <label className="form-label">债权人</label>
               <input
-                type="number"
+                type="text"
                 className="form-input"
-                value={formData.totalAmount ?? ''}
-                onChange={(e) => handleChange('totalAmount', e.target.value)}
-                placeholder="元"
+                value={formData.creditor ?? ''}
+                onChange={(e) => handleChange('creditor', e.target.value)}
+                placeholder="如：中国建设银行"
               />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+              <div className="form-group">
+                <label className="form-label">贷款总额</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={formData.totalAmount ?? ''}
+                  onChange={(e) => handleChange('totalAmount', e.target.value)}
+                  placeholder="元"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">已还本金</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={formData.paidPrincipal ?? ''}
+                  onChange={(e) => handleChange('paidPrincipal', e.target.value)}
+                  placeholder="元"
+                />
+              </div>
             </div>
             <div className="form-group">
               <label className="form-label">剩余本金</label>
@@ -415,18 +680,41 @@ export function AssetFormPage() {
                 placeholder="元"
               />
             </div>
-            <div className="form-group">
-              <label className="form-label">贷款利率 (%)</label>
-              <input
-                type="number"
-                step="0.01"
-                className="form-input"
-                value={formData.interestRate ?? ''}
-                onChange={(e) => handleChange('interestRate', e.target.value)}
-                placeholder="如：4.3"
-              />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+              <div className="form-group">
+                <label className="form-label">剩余期限（月）</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={formData.remainingTerm ?? ''}
+                  onChange={(e) => handleChange('remainingTerm', e.target.value)}
+                  placeholder="月"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">贷款利率 (%)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="form-input"
+                  value={formData.interestRate ?? ''}
+                  onChange={(e) => handleChange('interestRate', e.target.value)}
+                  placeholder="如：4.3"
+                />
+              </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+              <div className="form-group">
+                <label className="form-label">利率类型</label>
+                <select
+                  className="form-input form-select"
+                  value={formData.rateType ?? '浮动利率'}
+                  onChange={(e) => handleChange('rateType', e.target.value)}
+                >
+                  <option value="浮动利率">浮动利率</option>
+                  <option value="固定利率">固定利率</option>
+                </select>
+              </div>
               <div className="form-group">
                 <label className="form-label">还款方式</label>
                 <select
@@ -439,18 +727,60 @@ export function AssetFormPage() {
                   <option value="先息后本">先息后本</option>
                 </select>
               </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
               <div className="form-group">
-                <label className="form-label">负债性质</label>
-                <select
-                  className="form-input form-select"
-                  value={formData.nature ?? '待定'}
-                  onChange={(e) => handleChange('nature', e.target.value)}
-                >
-                  <option value="良性">良性</option>
-                  <option value="恶性">恶性</option>
-                  <option value="待定">待定</option>
-                </select>
+                <label className="form-label">月供金额</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={formData.monthlyPayment ?? ''}
+                  onChange={(e) => handleChange('monthlyPayment', e.target.value)}
+                  placeholder="元"
+                />
               </div>
+              <div className="form-group">
+                <label className="form-label">下次还款日</label>
+                <input
+                  type="date"
+                  className="form-input"
+                  value={formData.nextPaymentDate ?? ''}
+                  onChange={(e) => handleChange('nextPaymentDate', e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="form-group">
+              <label className="form-label">抵押物</label>
+              <input
+                type="text"
+                className="form-input"
+                value={formData.collateral ?? ''}
+                onChange={(e) => handleChange('collateral', e.target.value)}
+                placeholder="如：房产证"
+              />
+            </div>
+            <div className="form-group">
+              <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={formData.isCollateralized ?? false}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, isCollateralized: e.target.checked }))}
+                  style={{ width: 16, height: 16 }}
+                />
+                <span>已抵押</span>
+              </label>
+            </div>
+            <div className="form-group">
+              <label className="form-label">负债性质</label>
+              <select
+                className="form-input form-select"
+                value={formData.nature ?? '待定'}
+                onChange={(e) => handleChange('nature', e.target.value)}
+              >
+                <option value="良性">良性</option>
+                <option value="恶性">恶性</option>
+                <option value="待定">待定</option>
+              </select>
             </div>
             {formData.nature === '良性' && (
               <div className="badge badge-success">

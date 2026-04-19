@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useAssetStore } from '@/store';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { CATEGORY_NAMES, CATEGORY_COLORS, type AssetCategory } from '@/types';
 import { format } from 'date-fns';
 
 export function AssetsPage() {
+  const navigate = useNavigate();
   const { assets, deleteAsset } = useAssetStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<AssetCategory | 'all'>('all');
@@ -109,12 +110,19 @@ export function AssetsPage() {
       ) : (
         <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
           {filteredAssets.map((asset) => (
-            <div key={asset.id} className="card" style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: 'var(--space-4)',
-            }}>
+            <div
+              key={asset.id}
+              className="card"
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: 'var(--space-4)',
+                cursor: 'pointer',
+                transition: 'all var(--transition-fast)',
+              }}
+              onClick={() => navigate(`/assets/${asset.id}`)}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
                 <div style={{
                   width: 48,
@@ -144,7 +152,7 @@ export function AssetsPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-6)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-6)' }} onClick={(e) => e.stopPropagation()}>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{
                     fontSize: '1.25rem',
@@ -159,6 +167,12 @@ export function AssetsPage() {
                 </div>
 
                 <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => navigate(`/assets/${asset.id}`)}
+                  >
+                    查看
+                  </button>
                   <Link
                     to={`/assets/${asset.id}/edit`}
                     className="btn btn-ghost btn-sm"

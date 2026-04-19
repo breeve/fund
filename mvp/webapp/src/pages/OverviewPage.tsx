@@ -1,4 +1,5 @@
-import { useAssetStore } from '@/store';
+import { useEffect } from 'react';
+import { useAssetStore, useTrendStore } from '@/store';
 import { MetricCard } from '@/components/MetricCard';
 import { CategoryPieChart } from '@/components/CategoryPieChart';
 import { NetWorthTrendChart } from '@/components/NetWorthTrendChart';
@@ -9,11 +10,17 @@ import { format } from 'date-fns';
 export function OverviewPage() {
   const { getTotalAssets, getTotalLiabilities, getNetAssets, getCategoryBreakdown, assets } =
     useAssetStore();
+  const { trendHistory, recordTrendPoint } = useTrendStore();
 
   const totalAssets = getTotalAssets();
   const totalLiabilities = getTotalLiabilities();
   const netAssets = getNetAssets();
   const breakdown = getCategoryBreakdown();
+
+  // Record trend point when page loads (once per day)
+  useEffect(() => {
+    recordTrendPoint(totalAssets, totalLiabilities);
+  }, []);
 
   // Calculate change (mock)
   const changeRate = 2.35;
@@ -66,7 +73,7 @@ export function OverviewPage() {
         </div>
         <div className="card">
           <NetWorthTrendChart
-            data={undefined}
+            data={trendHistory.length > 0 ? trendHistory : undefined}
             dateRange="3M"
           />
         </div>

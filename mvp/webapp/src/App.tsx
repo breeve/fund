@@ -3,6 +3,7 @@ import { Layout } from './components/Layout';
 import { OverviewPage } from './pages/OverviewPage';
 import { AssetsPage } from './pages/AssetsPage';
 import { AssetFormPage } from './pages/AssetFormPage';
+import { AssetDetailPage } from './pages/AssetDetailPage';
 import { FundPage } from './pages/FundPage';
 import { FundDiagnosisPage } from './pages/FundDiagnosisPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -36,6 +37,7 @@ function App() {
         <Route path="/overview" element={<OverviewPage />} />
         <Route path="/assets" element={<AssetsPage />} />
         <Route path="/assets/new" element={<AssetFormPage />} />
+        <Route path="/assets/:id" element={<AssetDetailPage />} />
         <Route path="/assets/:id/edit" element={<AssetFormPage />} />
         <Route path="/fund" element={<FundPage />} />
         <Route path="/fund/:code" element={<FundDiagnosisPage />} />

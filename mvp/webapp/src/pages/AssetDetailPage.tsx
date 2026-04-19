@@ -1,12 +1,12 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAssetStore } from '@/store';
-import { CATEGORY_NAMES, CATEGORY_COLORS } from '@/types';
+import { CATEGORY_NAMES, CATEGORY_COLORS, isPublicFund, isPrivateFund, isStrategy, isFixedTerm, isLiquid, isDerivative, isProtection } from '@/types';
 import { format } from 'date-fns';
 
 export function AssetDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { assets } = useAssetStore();
+  const { assets, getAssetAdjustments } = useAssetStore();
 
   const asset = assets.find((a) => a.id === id);
 
@@ -26,6 +26,8 @@ export function AssetDetailPage() {
     );
   }
 
+  const adjustments = getAssetAdjustments(asset.id);
+
   const formatAmount = (amount: number) => {
     if (amount >= 10000) {
       return `${(amount / 10000).toFixed(2)}万`;
@@ -33,318 +35,234 @@ export function AssetDetailPage() {
     return `${amount.toLocaleString('zh-CN')}元`;
   };
 
+  const getCategoryEmoji = () => {
+    switch (asset.category) {
+      case 'fund': return '📈';
+      case 'private_fund': return '📊';
+      case 'strategy': return '🎯';
+      case 'fixed': return '🏦';
+      case 'liquid': return '💵';
+      case 'derivative': return '🥇';
+      case 'protection': return '🛡️';
+      default: return '📋';
+    }
+  };
+
+  const getDisplayAmount = () => {
+    if ('total' in asset) return asset.total;
+    if ('investmentAmount' in asset) return asset.investmentAmount;
+    return 0;
+  };
+
   // Render category-specific details
   const renderCategoryDetails = () => {
-    switch (asset.category) {
-      case 'liquid':
-        return (
-          <>
-            {asset.institution && (
-              <div className="detail-row">
-                <span className="detail-label">开户机构</span>
-                <span className="detail-value">{asset.institution}</span>
-              </div>
-            )}
-            {asset.productName && (
-              <div className="detail-row">
-                <span className="detail-label">产品名称</span>
-                <span className="detail-value">{asset.productName}</span>
-              </div>
-            )}
-            {asset.annualYield !== undefined && (
-              <div className="detail-row">
-                <span className="detail-label">年化收益率</span>
-                <span className="detail-value">{asset.annualYield}%</span>
-              </div>
-            )}
-          </>
-        );
-
-      case 'fixed':
-        return (
-          <>
+    // Public Fund (公募基金)
+    if (isPublicFund(asset)) {
+      return (
+        <>
+          {asset.code && (
             <div className="detail-row">
-              <span className="detail-label">购买日期</span>
-              <span className="detail-value">{asset.purchaseDate || '-'}</span>
+              <span className="detail-label">基金编码</span>
+              <span className="detail-value" style={{ fontFamily: 'var(--font-mono)' }}>{asset.code}</span>
             </div>
+          )}
+          {asset.sharpeRatio !== undefined && (
             <div className="detail-row">
-              <span className="detail-label">购买金额</span>
-              <span className="detail-value">{formatAmount(asset.purchaseAmount || 0)}</span>
+              <span className="detail-label">夏普比率</span>
+              <span className="detail-value">{asset.sharpeRatio}</span>
             </div>
+          )}
+          {asset.topHoldings && asset.topHoldings.length > 0 && (
             <div className="detail-row">
-              <span className="detail-label">当前估值</span>
-              <span className="detail-value">{formatAmount(asset.currentValue || 0)}</span>
+              <span className="detail-label">重仓股票</span>
+              <span className="detail-value">{asset.topHoldings.join(', ')}</span>
             </div>
-            <div className="detail-row">
-              <span className="detail-label">持有目的</span>
-              <span className="detail-value">{asset.holdingPurpose || '-'}</span>
-            </div>
-            <div className="detail-row">
-              <span className="detail-label">当前状态</span>
-              <span className="detail-value">{asset.status || '-'}</span>
-            </div>
-            {asset.monthlyRent !== undefined && (
-              <div className="detail-row">
-                <span className="detail-label">月租金</span>
-                <span className="detail-value">{formatAmount(asset.monthlyRent)}</span>
-              </div>
-            )}
-            {asset.loanAmount !== undefined && asset.loanAmount > 0 && (
-              <>
-                <div className="detail-row">
-                  <span className="detail-label">贷款金额</span>
-                  <span className="detail-value">{formatAmount(asset.loanAmount)}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">贷款利率</span>
-                  <span className="detail-value">{asset.loanRate || '-'}%</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">剩余期限</span>
-                  <span className="detail-value">{asset.loanRemainingTerm || '-'}月</span>
-                </div>
-                {asset.monthlyPayment !== undefined && (
-                  <div className="detail-row">
-                    <span className="detail-label">月供</span>
-                    <span className="detail-value">{formatAmount(asset.monthlyPayment)}</span>
-                  </div>
-                )}
-              </>
-            )}
-            {asset.leaseEndDate && (
-              <div className="detail-row">
-                <span className="detail-label">租约到期日</span>
-                <span className="detail-value">{asset.leaseEndDate}</span>
-              </div>
-            )}
-            {asset.depreciationYears && (
-              <div className="detail-row">
-                <span className="detail-label">折旧年限</span>
-                <span className="detail-value">{asset.depreciationYears}年</span>
-              </div>
-            )}
-          </>
-        );
-
-      case 'financial':
-        return (
-          <>
-            {asset.productCode && (
-              <div className="detail-row">
-                <span className="detail-label">产品代码</span>
-                <span className="detail-value" style={{ fontFamily: 'var(--font-mono)' }}>{asset.productCode}</span>
-              </div>
-            )}
-            {asset.quantity !== undefined && (
-              <div className="detail-row">
-                <span className="detail-label">持有数量</span>
-                <span className="detail-value">{asset.quantity.toLocaleString()}</span>
-              </div>
-            )}
-            {asset.costPrice !== undefined && (
-              <div className="detail-row">
-                <span className="detail-label">成本单价</span>
-                <span className="detail-value">{asset.costPrice}</span>
-              </div>
-            )}
-            {asset.currentPrice !== undefined && (
-              <div className="detail-row">
-                <span className="detail-label">当前单价</span>
-                <span className="detail-value">{asset.currentPrice}</span>
-              </div>
-            )}
-            {asset.costTotal !== undefined && (
-              <div className="detail-row">
-                <span className="detail-label">成本总额</span>
-                <span className="detail-value">{formatAmount(asset.costTotal)}</span>
-              </div>
-            )}
-            {asset.marketValue !== undefined && (
-              <div className="detail-row">
-                <span className="detail-label">当前市值</span>
-                <span className="detail-value">{formatAmount(asset.marketValue)}</span>
-              </div>
-            )}
-            {asset.purchaseDate && (
-              <div className="detail-row">
-                <span className="detail-label">买入日期</span>
-                <span className="detail-value">{asset.purchaseDate}</span>
-              </div>
-            )}
-            {asset.institution && (
-              <div className="detail-row">
-                <span className="detail-label">账户所在机构</span>
-                <span className="detail-value">{asset.institution}</span>
-              </div>
-            )}
-            {asset.fundCompany && (
-              <div className="detail-row">
-                <span className="detail-label">基金公司</span>
-                <span className="detail-value">{asset.fundCompany}</span>
-              </div>
-            )}
-            {asset.fundType && (
-              <div className="detail-row">
-                <span className="detail-label">基金类型</span>
-                <span className="detail-value">{asset.fundType}</span>
-              </div>
-            )}
-          </>
-        );
-
-      case 'protection':
-        return (
-          <>
-            {asset.insuranceCompany && (
-              <div className="detail-row">
-                <span className="detail-label">保险公司</span>
-                <span className="detail-value">{asset.insuranceCompany}</span>
-              </div>
-            )}
-            {asset.policyNumber && (
-              <div className="detail-row">
-                <span className="detail-label">保单号</span>
-                <span className="detail-value" style={{ fontFamily: 'var(--font-mono)' }}>{asset.policyNumber}</span>
-              </div>
-            )}
-            <div className="detail-row">
-              <span className="detail-label">险种类别</span>
-              <span className="detail-value">{asset.insuranceType}</span>
-            </div>
-            {asset.coverageAmount !== undefined && (
-              <div className="detail-row">
-                <span className="detail-label">保障额度</span>
-                <span className="detail-value">{asset.coverageAmount}万元</span>
-              </div>
-            )}
-            {asset.annualPremium !== undefined && (
-              <div className="detail-row">
-                <span className="detail-label">年缴保费</span>
-                <span className="detail-value">{formatAmount(asset.annualPremium)}</span>
-              </div>
-            )}
-            {asset.paymentYears !== undefined && (
-              <div className="detail-row">
-                <span className="detail-label">缴费年限</span>
-                <span className="detail-value">{asset.paymentYears}年</span>
-              </div>
-            )}
-            {asset.paidYears !== undefined && (
-              <div className="detail-row">
-                <span className="detail-label">已缴费年限</span>
-                <span className="detail-value">{asset.paidYears}年</span>
-              </div>
-            )}
-            {asset.remainingPaymentYears !== undefined && (
-              <div className="detail-row">
-                <span className="detail-label">剩余缴费年限</span>
-                <span className="detail-value">{asset.remainingPaymentYears}年</span>
-              </div>
-            )}
-            <div className="detail-row">
-              <span className="detail-label">保障期限</span>
-              <span className="detail-value">{asset.coveragePeriod}</span>
-            </div>
-            {asset.cashValue !== undefined && (
-              <div className="detail-row">
-                <span className="detail-label">现金价值</span>
-                <span className="detail-value">{formatAmount(asset.cashValue)}</span>
-              </div>
-            )}
-            {asset.waitingPeriod && (
-              <div className="detail-row">
-                <span className="detail-label">等待期</span>
-                <span className="detail-value">{asset.waitingPeriod}</span>
-              </div>
-            )}
-            {asset.exclusionSummary && (
-              <div className="detail-row">
-                <span className="detail-label">责任免除</span>
-                <span className="detail-value">{asset.exclusionSummary}</span>
-              </div>
-            )}
-          </>
-        );
-
-      case 'liability':
-        return (
-          <>
-            {asset.creditor && (
-              <div className="detail-row">
-                <span className="detail-label">债权人</span>
-                <span className="detail-value">{asset.creditor}</span>
-              </div>
-            )}
-            <div className="detail-row">
-              <span className="detail-label">贷款总额</span>
-              <span className="detail-value">{formatAmount(asset.totalAmount || 0)}</span>
-            </div>
-            {asset.paidPrincipal !== undefined && (
-              <div className="detail-row">
-                <span className="detail-label">已还本金</span>
-                <span className="detail-value">{formatAmount(asset.paidPrincipal)}</span>
-              </div>
-            )}
-            <div className="detail-row">
-              <span className="detail-label">剩余本金</span>
-              <span className="detail-value">{formatAmount(asset.remainingPrincipal)}</span>
-            </div>
-            {asset.remainingTerm !== undefined && (
-              <div className="detail-row">
-                <span className="detail-label">剩余期限</span>
-                <span className="detail-value">{asset.remainingTerm}月</span>
-              </div>
-            )}
-            {asset.interestRate !== undefined && (
-              <div className="detail-row">
-                <span className="detail-label">贷款利率</span>
-                <span className="detail-value">{asset.interestRate}%</span>
-              </div>
-            )}
-            <div className="detail-row">
-              <span className="detail-label">利率类型</span>
-              <span className="detail-value">{asset.rateType}</span>
-            </div>
-            <div className="detail-row">
-              <span className="detail-label">还款方式</span>
-              <span className="detail-value">{asset.repaymentMethod}</span>
-            </div>
-            {asset.monthlyPayment !== undefined && (
-              <div className="detail-row">
-                <span className="detail-label">月供金额</span>
-                <span className="detail-value">{formatAmount(asset.monthlyPayment)}</span>
-              </div>
-            )}
-            {asset.nextPaymentDate && (
-              <div className="detail-row">
-                <span className="detail-label">下次还款日</span>
-                <span className="detail-value">{asset.nextPaymentDate}</span>
-              </div>
-            )}
-            {asset.collateral && (
-              <div className="detail-row">
-                <span className="detail-label">抵押物</span>
-                <span className="detail-value">{asset.collateral}</span>
-              </div>
-            )}
-            <div className="detail-row">
-              <span className="detail-label">是否已抵押</span>
-              <span className="detail-value">{asset.isCollateralized ? '是' : '否'}</span>
-            </div>
-            <div className="detail-row">
-              <span className="detail-label">负债性质</span>
-              <span className="detail-value">
-                <span className={`badge ${asset.nature === '良性' ? 'badge-success' : asset.nature === '恶性' ? 'badge-danger' : 'badge-warning'}`}>
-                  {asset.nature}
-                </span>
-              </span>
-            </div>
-          </>
-        );
-
-      default:
-        return null;
+          )}
+          <div className="detail-row">
+            <span className="detail-label">资产来源</span>
+            <span className="detail-value">{asset.source}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">总额度</span>
+            <span className="detail-value">{formatAmount(asset.total)}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">持有成本</span>
+            <span className="detail-value">{formatAmount(asset.cost)}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">持有收益</span>
+            <span className="detail-value" style={{ color: asset.profit >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+              {asset.profit >= 0 ? '+' : ''}{formatAmount(asset.profit)}
+            </span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">持有收益率</span>
+            <span className="detail-value" style={{ color: asset.returnRate >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+              {asset.returnRate >= 0 ? '+' : ''}{asset.returnRate.toFixed(2)}%
+            </span>
+          </div>
+        </>
+      );
     }
+
+    // Private Fund (私募基金)
+    if (isPrivateFund(asset)) {
+      return (
+        <>
+          {asset.code && (
+            <div className="detail-row">
+              <span className="detail-label">基金编码</span>
+              <span className="detail-value" style={{ fontFamily: 'var(--font-mono)' }}>{asset.code}</span>
+            </div>
+          )}
+          <div className="detail-row">
+            <span className="detail-label">资产来源</span>
+            <span className="detail-value">{asset.source}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">总额度</span>
+            <span className="detail-value">{formatAmount(asset.total)}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">持有成本</span>
+            <span className="detail-value">{formatAmount(asset.cost)}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">持有收益</span>
+            <span className="detail-value" style={{ color: asset.profit >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+              {asset.profit >= 0 ? '+' : ''}{formatAmount(asset.profit)}
+            </span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">持有收益率</span>
+            <span className="detail-value" style={{ color: asset.returnRate >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+              {asset.returnRate >= 0 ? '+' : ''}{asset.returnRate.toFixed(2)}%
+            </span>
+          </div>
+        </>
+      );
+    }
+
+    // Strategy (策略)
+    if (isStrategy(asset)) {
+      return (
+        <>
+          <div className="detail-row">
+            <span className="detail-label">资产来源</span>
+            <span className="detail-value">{asset.source}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">总额度</span>
+            <span className="detail-value">{formatAmount(asset.total)}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">持有成本</span>
+            <span className="detail-value">{formatAmount(asset.cost)}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">持有收益</span>
+            <span className="detail-value" style={{ color: asset.profit >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+              {asset.profit >= 0 ? '+' : ''}{formatAmount(asset.profit)}
+            </span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">持有收益率</span>
+            <span className="detail-value" style={{ color: asset.returnRate >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+              {asset.returnRate >= 0 ? '+' : ''}{asset.returnRate.toFixed(2)}%
+            </span>
+          </div>
+        </>
+      );
+    }
+
+    // Fixed Term (定期)
+    if (isFixedTerm(asset)) {
+      return (
+        <>
+          <div className="detail-row">
+            <span className="detail-label">资产来源</span>
+            <span className="detail-value">{asset.source}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">年限</span>
+            <span className="detail-value">{asset.duration}年</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">起投日期</span>
+            <span className="detail-value">{asset.startDate}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">年化收益率</span>
+            <span className="detail-value">{asset.annualReturn}%</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">投资金额</span>
+            <span className="detail-value">{formatAmount(asset.investmentAmount)}</span>
+          </div>
+        </>
+      );
+    }
+
+    // Liquid (活钱)
+    if (isLiquid(asset)) {
+      return (
+        <>
+          <div className="detail-row">
+            <span className="detail-label">资产来源</span>
+            <span className="detail-value">{asset.source}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">总额度</span>
+            <span className="detail-value">{formatAmount(asset.total)}</span>
+          </div>
+        </>
+      );
+    }
+
+    // Derivative (金融衍生品)
+    if (isDerivative(asset)) {
+      return (
+        <>
+          <div className="detail-row">
+            <span className="detail-label">资产来源</span>
+            <span className="detail-value">{asset.source}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">总额度</span>
+            <span className="detail-value">{formatAmount(asset.total)}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">持有成本</span>
+            <span className="detail-value">{formatAmount(asset.cost)}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">持有收益</span>
+            <span className="detail-value" style={{ color: asset.profit >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+              {asset.profit >= 0 ? '+' : ''}{formatAmount(asset.profit)}
+            </span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">持有收益率</span>
+            <span className="detail-value" style={{ color: asset.returnRate >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+              {asset.returnRate >= 0 ? '+' : ''}{asset.returnRate.toFixed(2)}%
+            </span>
+          </div>
+        </>
+      );
+    }
+
+    // Protection (保障)
+    if (isProtection(asset)) {
+      return (
+        <div className="detail-row">
+          <span className="detail-label">类型</span>
+          <span className="detail-value">{asset.subType}</span>
+        </div>
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -369,10 +287,7 @@ export function AssetDetailPage() {
               justifyContent: 'center',
               fontSize: '2rem',
             }}>
-              {asset.category === 'liquid' ? '💵' :
-               asset.category === 'fixed' ? '🏠' :
-               asset.category === 'financial' ? '📈' :
-               asset.category === 'protection' ? '🛡️' : '📋'}
+              {getCategoryEmoji()}
             </div>
             <div>
               <h1 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 'var(--space-1)' }}>
@@ -386,9 +301,9 @@ export function AssetDetailPage() {
           <div style={{
             fontSize: '1.75rem',
             fontWeight: 700,
-            color: asset.category === 'liability' ? 'var(--color-danger)' : 'var(--color-text)',
+            color: 'var(--color-text)',
           }}>
-            {asset.category === 'liability' ? '-' : '+'}{formatAmount(asset.amount)}
+            {formatAmount(getDisplayAmount())}
           </div>
         </div>
 
@@ -423,11 +338,32 @@ export function AssetDetailPage() {
 
       {/* Metadata */}
       <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', fontSize: '0.875rem', color: 'var(--color-text-muted)' }}>
+          <span>录入时间: {format(new Date(asset.entryTime), 'yyyy-MM-dd')}</span>
           <span>创建于 {format(new Date(asset.createdAt), 'yyyy-MM-dd HH:mm')}</span>
           <span>更新于 {format(new Date(asset.updatedAt), 'yyyy-MM-dd HH:mm')}</span>
         </div>
       </div>
+
+      {/* Adjustment History */}
+      {adjustments.length > 0 && (
+        <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
+          <div className="card-header">
+            <h2 className="card-title">调整历史</h2>
+          </div>
+          <div className="detail-list">
+            {adjustments.map((adj) => (
+              <div key={adj.id} className="detail-row">
+                <span className="detail-label">{format(new Date(adj.adjustedAt), 'yyyy-MM-dd')}</span>
+                <span className="detail-value">
+                  {formatAmount(adj.previousValue)} → {formatAmount(adj.newValue)}
+                  {adj.changeReason && <span style={{ color: 'var(--color-text-muted)' }}> ({adj.changeReason})</span>}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 'var(--space-3)' }}>

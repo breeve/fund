@@ -8,18 +8,17 @@ import { CATEGORY_NAMES, CATEGORY_COLORS, type AssetCategory } from '@/types';
 import { format } from 'date-fns';
 
 export function OverviewPage() {
-  const { getTotalAssets, getTotalLiabilities, getNetAssets, getCategoryBreakdown, assets } =
+  const { getTotalAssets, getNetAssets, getCategoryBreakdown, assets } =
     useAssetStore();
   const { trendHistory, recordTrendPoint } = useTrendStore();
 
   const totalAssets = getTotalAssets();
-  const totalLiabilities = getTotalLiabilities();
   const netAssets = getNetAssets();
   const breakdown = getCategoryBreakdown();
 
   // Record trend point when page loads (once per day)
   useEffect(() => {
-    recordTrendPoint(totalAssets, totalLiabilities);
+    recordTrendPoint(totalAssets, 0); // No liabilities in new model
   }, []);
 
   // Calculate change (mock)
@@ -52,12 +51,6 @@ export function OverviewPage() {
           value={`${(totalAssets / 10000).toFixed(2)}万`}
           icon="🏦"
           color="success"
-        />
-        <MetricCard
-          title="总负债"
-          value={`${(totalLiabilities / 10000).toFixed(2)}万`}
-          icon="📋"
-          color="danger"
         />
       </div>
 
@@ -99,7 +92,7 @@ export function OverviewPage() {
           </thead>
           <tbody>
             {(Object.keys(CATEGORY_NAMES) as AssetCategory[])
-              .filter((cat) => cat !== 'liability' && breakdown[cat] > 0)
+              .filter((cat) => breakdown[cat] > 0)
               .map((category) => {
                 const count = assets.filter((a) => a.category === category).length;
                 const amount = breakdown[category];

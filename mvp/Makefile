@@ -31,21 +31,14 @@
 # Package manager (defaults to npm if not specified)
 PKG_MANAGER ?= npm
 
-# Commands for different package managers
-define PKG_COMMANDS
-  npm: install="npm install"; build="npm run build"; dev="npm run dev"; test="npm run test"; lint="npm run lint"; typecheck="npm run type-check"; clean="rm -rf dist node_modules .vite"
-  pnpm: install="pnpm install"; build="pnpm build"; dev="pnpm dev"; test="pnpm test"; lint="pnpm lint"; typecheck="pnpm type-check"; clean="pnpm exec rm -rf dist node_modules .vite"
-  yarn: install="yarn"; build="yarn build"; dev="yarn dev"; test="yarn test"; lint="yarn lint"; typecheck="yarn type-check"; clean="yarn exec rm -rf dist node_modules .vite"
-endef
-
-# Parse package manager commands
-INSTALL := $(shell echo "$${PKG_COMMANDS}" | grep "^$(PKG_MANAGER):" | sed 's/.*install="\([^"]*\)".*/\1/')
-BUILD := $(shell echo "$${PKG_COMMANDS}" | grep "^$(PKG_MANAGER):" | sed 's/.*build="\([^"]*\)".*/\1/')
-DEV := $(shell echo "$${PKG_COMMANDS}" | grep "^$(PKG_MANAGER):" | sed 's/.*dev="\([^"]*\)".*/\1/')
-TEST := $(shell echo "$${PKG_COMMANDS}" | grep "^$(PKG_MANAGER):" | sed 's/.*test="\([^"]*\)".*/\1/')
-LINT := $(shell echo "$${PKG_COMMANDS}" | grep "^$(PKG_MANAGER):" | sed 's/.*lint="\([^"]*\)".*/\1/')
-TYPECHECK := $(shell echo "$${PKG_COMMANDS}" | grep "^$(PKG_MANAGER):" | sed 's/.*typecheck="\([^"]*\)".*/\1/')
-CLEAN := $(shell echo "$${PKG_COMMANDS}" | grep "^$(PKG_MANAGER):" | sed 's/.*clean="\([^"]*\)".*/\1/')
+# Commands for different package managers - simple ifeq approach
+INSTALL := $(if $(filter npm,$(PKG_MANAGER)),npm install,$(if $(filter pnpm,$(PKG_MANAGER)),pnpm install,$(if $(filter yarn,$(PKG_MANAGER)),yarn,echo "unsupported pkg manager")))
+DEV := $(if $(filter npm,$(PKG_MANAGER)),npm run dev,$(if $(filter pnpm,$(PKG_MANAGER)),pnpm dev,$(if $(filter yarn,$(PKG_MANAGER)),yarn dev,echo "unsupported pkg manager")))
+BUILD := $(if $(filter npm,$(PKG_MANAGER)),npm run build,$(if $(filter pnpm,$(PKG_MANAGER)),pnpm build,$(if $(filter yarn,$(PKG_MANAGER)),yarn build,echo "unsupported pkg manager")))
+TEST := $(if $(filter npm,$(PKG_MANAGER)),npm run test,$(if $(filter pnpm,$(PKG_MANAGER)),pnpm test,$(if $(filter yarn,$(PKG_MANAGER)),yarn test,echo "unsupported pkg manager")))
+LINT := $(if $(filter npm,$(PKG_MANAGER)),npm run lint,$(if $(filter pnpm,$(PKG_MANAGER)),pnpm lint,$(if $(filter yarn,$(PKG_MANAGER)),yarn lint,echo "unsupported pkg manager")))
+TYPECHECK := $(if $(filter npm,$(PKG_MANAGER)),npm run type-check,$(if $(filter pnpm,$(PKG_MANAGER)),pnpm type-check,$(if $(filter yarn,$(PKG_MANAGER)),yarn type-check,echo "unsupported pkg manager")))
+CLEAN := $(if $(filter npm,$(PKG_MANAGER)),rm -rf dist node_modules .vite,$(if $(filter pnpm,$(PKG_MANAGER)),pnpm exec rm -rf dist node_modules .vite,$(if $(filter yarn,$(PKG_MANAGER)),yarn exec rm -rf dist node_modules .vite,echo "unsupported pkg manager")))
 
 .PHONY: all help check-env pwa-icons cap-init cap-add-macos cap-add-ios cap-add-android cap-sync cap-open cap-build pwa-preview github-pages \
         mvp-webapp mvp-serve mvp-build mvp-test mvp-test-coverage mvp-lint mvp-clean mvp-typecheck
@@ -85,7 +78,7 @@ pwa-icons: ## Generate PWA icons
 ## GitHub Pages Build ────────────────────────────────────────────────────────
 github-pages: check-env ## Build for GitHub Pages deployment
 	@echo "Building for GitHub Pages (BASE_PATH=/fund/)..."
-	cd webapp && BASE_PATH=/fund/ $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) run build
+	cd webapp && BASE_PATH=/fund/ $(BUILD)
 	@echo "  ✓ GitHub Pages build complete! Output in webapp/dist/"
 	@echo "  → Deploy webapp/dist/ to GitHub Pages at /fund/ path"
 
@@ -135,38 +128,38 @@ cap-build: mvp-build cap-sync ## Full build: web + native sync
 mvp-webapp: check-env ## Build MVP webapp (development)
 	@echo "Building MVP webapp with $(PKG_MANAGER)..."
 	@echo "  → Installing dependencies..."
-	@cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) $(INSTALL)
+	@cd webapp && $(INSTALL)
 	@echo "  → Building..."
-	@cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) run build
+	@cd webapp && $(BUILD)
 	@echo "  ✓ Build complete!"
 
 mvp-serve: check-env ## Serve MVP webapp in development mode
 	@echo "Starting development server..."
-	@cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) $(DEV)
+	@cd webapp && $(DEV)
 
 mvp-build: check-env ## Production build of MVP webapp
 	@echo "Production build with $(PKG_MANAGER)..."
-	@cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) $(INSTALL)
-	@cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) run build
+	@cd webapp && $(INSTALL)
+	@cd webapp && $(BUILD)
 	@echo "  ✓ Production build complete!"
 
 ## mvp-test ─────────────────────────────────────────────────────────────────────
 mvp-test: check-env ## Run tests for MVP webapp
 	@echo "Running tests..."
-	@cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) run test -- --run
+	@cd webapp && $(TEST) -- --run
 
 mvp-test-coverage: check-env ## Run tests with coverage
 	@echo "Running tests with coverage..."
-	@cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) run test:coverage
+	@cd webapp && $(TEST):coverage
 
 ## mvp-lint ─────────────────────────────────────────────────────────────────────
 mvp-lint: mvp-typecheck ## Lint code
 	@echo "Linting code..."
-	@cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) $(LINT)
+	@cd webapp && $(LINT)
 
 mvp-typecheck: ## Type check only
 	@echo "Type checking..."
-	@cd webapp && $(or $(shell which $(PKG_MANAGER) 2>/dev/null),npm) $(TYPECHECK)
+	@cd webapp && $(TYPECHECK)
 
 ## mvp-clean ─────────────────────────────────────────────────────────────────────
 mvp-clean: ## Clean build artifacts

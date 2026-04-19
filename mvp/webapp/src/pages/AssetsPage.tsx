@@ -25,7 +25,11 @@ export function AssetsPage() {
       }
       return true;
     })
-    .sort((a, b) => b.amount - a.amount);
+    .sort((a, b) => {
+      const aValue = 'total' in a ? a.total : 'investmentAmount' in a ? a.investmentAmount : 0;
+      const bValue = 'total' in b ? b.total : 'investmentAmount' in b ? b.investmentAmount : 0;
+      return bValue - aValue;
+    });
 
   const handleDelete = (id: string) => {
     deleteAsset(id);
@@ -37,6 +41,25 @@ export function AssetsPage() {
       return `${(amount / 10000).toFixed(2)}万`;
     }
     return `${amount.toLocaleString('zh-CN')}元`;
+  };
+
+  const getAssetAmount = (asset: typeof assets[number]) => {
+    if ('total' in asset) return asset.total;
+    if ('investmentAmount' in asset) return asset.investmentAmount;
+    return 0;
+  };
+
+  const getCategoryEmoji = (category: AssetCategory) => {
+    switch (category) {
+      case 'fund': return '📈';
+      case 'private_fund': return '📊';
+      case 'strategy': return '🎯';
+      case 'fixed': return '🏦';
+      case 'liquid': return '💵';
+      case 'derivative': return '🥇';
+      case 'protection': return '🛡️';
+      default: return '📋';
+    }
   };
 
   return (
@@ -78,21 +101,19 @@ export function AssetsPage() {
             >
               全部
             </button>
-            {(Object.keys(CATEGORY_NAMES) as AssetCategory[])
-              .filter((cat) => cat !== 'liability')
-              .map((category) => (
-                <button
-                  key={category}
-                  className={`btn ${selectedCategory === category ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => setSelectedCategory(category)}
-                  style={selectedCategory === category ? {} : {
-                    borderColor: CATEGORY_COLORS[category],
-                    color: CATEGORY_COLORS[category],
-                  }}
-                >
-                  {CATEGORY_NAMES[category]}
-                </button>
-              ))}
+            {(Object.keys(CATEGORY_NAMES) as AssetCategory[]).map((category) => (
+              <button
+                key={category}
+                className={`btn ${selectedCategory === category ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setSelectedCategory(category)}
+                style={selectedCategory === category ? {} : {
+                  borderColor: CATEGORY_COLORS[category],
+                  color: CATEGORY_COLORS[category],
+                }}
+              >
+                {CATEGORY_NAMES[category]}
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -134,10 +155,7 @@ export function AssetsPage() {
                   justifyContent: 'center',
                   fontSize: '1.5rem',
                 }}>
-                  {asset.category === 'liquid' ? '💵' :
-                   asset.category === 'fixed' ? '🏠' :
-                   asset.category === 'financial' ? '📈' :
-                   asset.category === 'protection' ? '🛡️' : '📋'}
+                  {getCategoryEmoji(asset.category)}
                 </div>
                 <div>
                   <div style={{ fontWeight: 600, marginBottom: 'var(--space-1)' }}>
@@ -149,6 +167,9 @@ export function AssetsPage() {
                       <span> · {asset.tags.join(', ')}</span>
                     )}
                   </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                    录入: {format(new Date(asset.entryTime), 'yyyy-MM-dd')}
+                  </div>
                 </div>
               </div>
 
@@ -157,9 +178,9 @@ export function AssetsPage() {
                   <div style={{
                     fontSize: '1.25rem',
                     fontWeight: 700,
-                    color: asset.category === 'liability' ? 'var(--color-danger)' : 'var(--color-text)',
+                    color: 'var(--color-text)',
                   }}>
-                    {asset.category === 'liability' ? '-' : '+'}{formatAmount(asset.amount)}
+                    {formatAmount(getAssetAmount(asset))}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
                     更新于 {format(new Date(asset.updatedAt), 'MM/dd')}

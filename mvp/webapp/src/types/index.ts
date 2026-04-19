@@ -1,137 +1,144 @@
-// Asset Categories based on technical specification
+// Asset Categories based on disc.md specification
 export type AssetCategory =
-  | 'liquid'        // 流动资产
-  | 'fixed'         // 固定资产
-  | 'financial'     // 金融投资
-  | 'protection'    // 保障类
-  | 'liability';    // 负债
+  | 'fund'          // 基金 - 公募基金
+  | 'private_fund'  // 私募基金
+  | 'strategy'      // 策略
+  | 'fixed'         // 定期
+  | 'liquid'        // 活钱
+  | 'derivative'    // 金融衍生品
+  | 'protection';   // 保障类
 
-// Asset sub-types
+// Asset sub-types with tags
+export interface AssetSubTypeInfo {
+  label: string;
+  tags?: string[];
+}
+
 export const ASSET_SUB_TYPES: Record<AssetCategory, string[]> = {
-  liquid: ['现金类', '短期理财', '可快速变现类'],
-  fixed: ['自用型实物', '投资型实物', '投资型权益'],
-  financial: ['权益类', '固定收益类', '基金类', '另类投资', '衍生品'],
-  protection: ['健康险', '意外险', '寿险', '年金险', '社保/公积金'],
-  liability: ['住房负债', '消费负债', '信用负债', '其他负债'],
+  fund: ['A股', 'H股', 'AH', '中美', '全球'],
+  private_fund: ['债券策略-长债', '债券策略-短债', '多策略-激进', '多策略-保守', '股票策略'],
+  strategy: ['全球精选90', '全球精选100', '股票基金金选', '行业景气度策略', '百分百进攻'],
+  fixed: ['银行定期', '股票定期'],
+  liquid: ['余额宝', '活期存款'],
+  derivative: ['黄金'],
+  protection: ['住房公积金', '个人公积金'],
 };
+
+// Geographic tags for financial assets
+export const GEO_TAGS = ['国内', '全球', '港股'] as const;
+export type GeoTag = typeof GEO_TAGS[number];
+
+// Risk level tags
+export const RISK_TAGS = ['低风险', '中低风险', '中风险', '中高风险', '高风险'] as const;
+export type RiskTag = typeof RISK_TAGS[number];
+
+// Asset source tags
+export const SOURCE_TAGS = ['蚂蚁财富', '银行', '其他'] as const;
+export type SourceTag = typeof SOURCE_TAGS[number];
 
 // Category display names
 export const CATEGORY_NAMES: Record<AssetCategory, string> = {
-  liquid: '流动资产',
-  fixed: '固定资产',
-  financial: '金融投资',
-  protection: '保障类',
-  liability: '负债',
+  fund: '公募基金',
+  private_fund: '私募基金',
+  strategy: '策略',
+  fixed: '定期',
+  liquid: '活钱',
+  derivative: '金融衍生品',
+  protection: '保障',
 };
 
 export const CATEGORY_COLORS: Record<AssetCategory, string> = {
-  liquid: '#22c55e',    // green
-  fixed: '#3b82f6',     // blue
-  financial: '#8b5cf6', // purple
-  protection: '#f59e0b', // amber
-  liability: '#ef4444', // red
+  fund: '#3b82f6',     // blue
+  private_fund: '#8b5cf6', // purple
+  strategy: '#ec4899',  // pink
+  fixed: '#22c55e',    // green
+  liquid: '#f59e0b',    // amber
+  derivative: '#f97316', // orange
+  protection: '#06b6d4', // cyan
 };
 
-// Base Asset interface
+// Base Asset interface - common fields for all assets
 export interface BaseAsset {
   id: string;
   name: string;
   category: AssetCategory;
   subType: string;
-  amount: number;
-  currency: string;
-  tags: string[];
+  tags: string[];  // 地域划分 + 风险等级
   notes: string;
+  entryTime: string;    // 录入时间 - for trend analysis
   createdAt: string;
   updatedAt: string;
 }
 
-// Liquid Assets
+// Public Fund (公募基金)
+export interface PublicFundAsset extends BaseAsset {
+  category: 'fund';
+  code?: string;              // 基金编码
+  sharpeRatio?: number;       // 夏普比率
+  topHoldings?: string[];     // 重仓股票
+  source: SourceTag;          // 资产来源
+  total: number;              // 总额度(包含本金+收益)
+  cost: number;               // 持有成本
+  profit: number;             // 持有收益
+  returnRate: number;         // 持有收益率(计算得到) = profit / cost * 100
+}
+
+// Private Fund (私募基金)
+export interface PrivateFundAsset extends BaseAsset {
+  category: 'private_fund';
+  code?: string;              // 基金编码
+  source: SourceTag;          // 资产来源: 蚂蚁财富
+  total: number;              // 总额度(包含本金+收益)
+  cost: number;               // 持有成本
+  profit: number;             // 持有收益
+  returnRate: number;         // 持有收益率(计算得到)
+}
+
+// Strategy (策略)
+export interface StrategyAsset extends BaseAsset {
+  category: 'strategy';
+  source: SourceTag;          // 资产来源: 蚂蚁财富
+  total: number;              // 总额度(包含本金+收益)
+  cost: number;               // 持有成本
+  profit: number;             // 持有收益
+  returnRate: number;         // 持有收益率(计算得到)
+}
+
+// Fixed Term (定期)
+export interface FixedTermAsset extends BaseAsset {
+  category: 'fixed';
+  duration: number;           // 年限
+  startDate: string;          // 起投日期
+  source: SourceTag;          // 资产来源: 银行
+  annualReturn: number;       // 年化收益率
+  investmentAmount: number;    // 投资金额
+}
+
+// Liquid Assets (活钱)
 export interface LiquidAsset extends BaseAsset {
   category: 'liquid';
-  institution?: string;       // 开户机构
-  productName?: string;       // 产品名称
-  annualYield?: number;       // 年化收益率
-  lastChangeDate?: string;    // 最近一次变动日期
+  source: SourceTag;          // 资产来源: 银行
+  total: number;              // 总额度
 }
 
-// Fixed Assets
-export interface FixedAsset extends BaseAsset {
-  category: 'fixed';
-  purchaseDate: string;       // 购买日期
-  purchaseAmount: number;     // 购买金额
-  currentValue: number;       // 当前估值
-  holdingPurpose: '自用' | '投资';
-  status: '自住' | '出租' | '空置';
-  monthlyRent?: number;       // 月租金
-  leaseEndDate?: string;      // 租约到期日
-  loanAmount?: number;        // 贷款金额
-  loanRate?: number;          // 贷款利率
-  loanRemainingTerm?: number; // 剩余期限(月)
-  monthlyPayment?: number;    // 月供
-  depreciationYears?: number; // 折旧年限
+// Derivative (金融衍生品)
+export interface DerivativeAsset extends BaseAsset {
+  category: 'derivative';
+  source: SourceTag;          // 资产来源: 银行
+  total: number;              // 总额度
+  cost: number;               // 持有成本
+  profit: number;             // 持有收益
+  returnRate: number;         // 持有收益率(计算得到)
 }
 
-// Financial Investment Assets
-export interface FinancialAsset extends BaseAsset {
-  category: 'financial';
-  productCode?: string;       // 产品代码
-  quantity?: number;          // 持有数量/份额
-  costPrice?: number;         // 成本单价
-  currentPrice?: number;      // 当前单价
-  costTotal?: number;         // 成本总额
-  marketValue?: number;       // 当前市值
-  purchaseDate?: string;      // 买入日期
-  dividendRecord?: string;    // 分红记录
-  institution?: string;       // 账户所在机构
-  // 基金特定
-  fundCompany?: string;       // 基金公司
-  fundType?: '主动' | '指数'; // 基金类型
-  managementFee?: number;     // 管理费
-  custodyFee?: number;        // 托管费
-  // 股票特定
-  exchange?: string;          // 交易所
-  industry?: string;          // 行业
-  weight?: number;            // 权重
-}
-
-// Protection Assets
+// Protection (保障)
 export interface ProtectionAsset extends BaseAsset {
   category: 'protection';
-  insuranceCompany?: string;  // 保险公司
-  policyNumber?: string;      // 保单号
-  insuranceType: '健康险' | '意外险' | '寿险' | '年金险' | '社保/公积金';
-  coverageAmount?: number;    // 保障额度/保额
-  annualPremium?: number;     // 年缴保费
-  paymentYears?: number;      // 缴费年限
-  paidYears?: number;         // 已缴费年限
-  remainingPaymentYears?: number; // 剩余缴费年限
-  coveragePeriod: '终身' | `至${number}岁` | '一年期';
-  cashValue?: number;         // 现金价值
-  waitingPeriod?: string;     // 等待期
-  exclusionSummary?: string;  // 责任免除摘要
-}
-
-// Liability Assets
-export interface LiabilityAsset extends BaseAsset {
-  category: 'liability';
-  creditor?: string;          // 债权人
-  totalAmount: number;        // 贷款总额
-  paidPrincipal?: number;     // 已还本金
-  remainingPrincipal: number; // 剩余本金
-  remainingTerm?: number;     // 剩余期限(月)
-  interestRate?: number;      // 贷款利率
-  rateType: '浮动利率' | '固定利率';
-  repaymentMethod: '等额本息' | '等额本金' | '先息后本';
-  monthlyPayment?: number;    // 月供金额
-  nextPaymentDate?: string;   // 下次还款日
-  collateral?: string;        // 抵押物
-  isCollateralized?: boolean; // 是否已抵押
-  nature: '良性' | '恶性' | '待定';
+  // subType already in base: 住房公积金, 个人公积金
 }
 
 // Union type for all assets
-export type Asset = LiquidAsset | FixedAsset | FinancialAsset | ProtectionAsset | LiabilityAsset;
+export type Asset = PublicFundAsset | PrivateFundAsset | StrategyAsset | FixedTermAsset | LiquidAsset | DerivativeAsset | ProtectionAsset;
 
 // Fund types for diagnosis
 export interface FundInfo {
@@ -229,4 +236,49 @@ export interface UserPreferences {
   dateFormat: string;
   currency: string;
   showTips: boolean;
+}
+
+// Asset adjustment record - for trend tracking
+export interface AssetAdjustment {
+  id: string;
+  assetId: string;           // Original asset this adjustment belongs to
+  adjustedAt: string;         // When the adjustment was made
+  previousValue: number;     // Value before adjustment
+  newValue: number;          // Value after adjustment
+  changeReason?: string;      // Reason for adjustment
+}
+
+// Helper type guards
+export function isPublicFund(asset: Asset): asset is PublicFundAsset {
+  return asset.category === 'fund';
+}
+
+export function isPrivateFund(asset: Asset): asset is PrivateFundAsset {
+  return asset.category === 'private_fund';
+}
+
+export function isStrategy(asset: Asset): asset is StrategyAsset {
+  return asset.category === 'strategy';
+}
+
+export function isFixedTerm(asset: Asset): asset is FixedTermAsset {
+  return asset.category === 'fixed';
+}
+
+export function isLiquid(asset: Asset): asset is LiquidAsset {
+  return asset.category === 'liquid';
+}
+
+export function isDerivative(asset: Asset): asset is DerivativeAsset {
+  return asset.category === 'derivative';
+}
+
+export function isProtection(asset: Asset): asset is ProtectionAsset {
+  return asset.category === 'protection';
+}
+
+// Calculate return rate
+export function calculateReturnRate(profit: number, cost: number): number {
+  if (cost === 0) return 0;
+  return (profit / cost) * 100;
 }

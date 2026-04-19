@@ -19,15 +19,15 @@ export function SettingsPage() {
         saveAs(blob, `fund-assets-${new Date().toISOString().split('T')[0]}.json`);
       } else {
         // CSV export
-        const headers = ['名称', '类别', '子类别', '金额', '货币', '标签', '备注', '创建时间', '更新时间'];
+        const headers = ['名称', '类别', '子类别', '总额度', '标签', '备注', '录入时间', '创建时间', '更新时间'];
         const rows = assets.map((a) => [
           a.name,
           a.category,
           a.subType,
-          a.amount,
-          a.currency,
+          'total' in a ? a.total : 'investmentAmount' in a ? a.investmentAmount : 0,
           a.tags.join(';'),
           a.notes,
+          a.entryTime,
           a.createdAt,
           a.updatedAt,
         ]);
@@ -66,19 +66,31 @@ export function SettingsPage() {
           if (!line) continue;
           const values = line.split(',').map(v => v.replace(/^"|"$/g, '').trim());
           if (values.length >= 7 && values[0] && values[1]) {
-            const asset: Partial<Asset> = {
+            const category = values[1] as Asset['category'];
+            // Build asset based on category
+            const baseAsset = {
               name: values[0],
-              category: values[1] as Asset['category'],
+              category,
               subType: values[2] ?? '',
-              amount: parseFloat(values[3] ?? '') || 0,
-              currency: values[4] || 'CNY',
-              tags: values[5] ? values[5].split(';') : [],
-              notes: values[6] ?? '',
-              createdAt: values[7] || new Date().toISOString(),
-              updatedAt: values[8] || new Date().toISOString(),
+              tags: values[4] ? values[4].split(';') : [],
+              notes: values[5] ?? '',
+              entryTime: values[6] || new Date().toISOString().split('T')[0],
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
             };
-            if (asset.name && asset.category) {
-              importedAssets.push(asset as Asset);
+            // Add category-specific fields
+            if (category === 'fixed') {
+              importedAssets.push({
+                ...baseAsset,
+                investmentAmount: parseFloat(values[3] ?? '') || 0,
+              } as Asset);
+            } else if (category !== 'protection') {
+              importedAssets.push({
+                ...baseAsset,
+                total: parseFloat(values[3] ?? '') || 0,
+              } as Asset);
+            } else {
+              importedAssets.push(baseAsset as Asset);
             }
           }
         }

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { useAssetStore } from '@/store/assetStore';
 import { useFundStore } from '@/store/fundStore';
+import type { Asset } from '@/types';
 
 describe('Asset Store', () => {
   it('should initialize with sample assets', () => {
@@ -13,30 +14,25 @@ describe('Asset Store', () => {
     expect(totalAssets).toBeGreaterThan(0);
   });
 
-  it('should calculate total liabilities correctly', () => {
-    const totalLiabilities = useAssetStore.getState().getTotalLiabilities();
-    expect(totalLiabilities).toBeGreaterThan(0);
-  });
-
   it('should calculate net assets correctly', () => {
     const netAssets = useAssetStore.getState().getNetAssets();
     const totalAssets = useAssetStore.getState().getTotalAssets();
-    const totalLiabilities = useAssetStore.getState().getTotalLiabilities();
-    expect(netAssets).toBe(totalAssets - totalLiabilities);
+    expect(netAssets).toBe(totalAssets); // No liabilities in new model
   });
 
-  it('should add a new asset', () => {
+  it('should add a new liquid asset', () => {
     const initialCount = useAssetStore.getState().assets.length;
 
     useAssetStore.getState().addAsset({
       name: 'Test Asset',
       category: 'liquid',
-      subType: '现金类',
-      amount: 10000,
-      currency: 'CNY',
+      subType: '余额宝',
+      source: '银行',
+      total: 10000,
       tags: ['test'],
       notes: 'Test note',
-    });
+      entryTime: new Date().toISOString().slice(0, 10),
+    } as Asset);
 
     const newCount = useAssetStore.getState().assets.length;
     expect(newCount).toBe(initialCount + 1);
@@ -60,9 +56,24 @@ describe('Asset Store', () => {
     const breakdown = useAssetStore.getState().getCategoryBreakdown();
     expect(breakdown).toHaveProperty('liquid');
     expect(breakdown).toHaveProperty('fixed');
-    expect(breakdown).toHaveProperty('financial');
+    expect(breakdown).toHaveProperty('fund');
     expect(breakdown).toHaveProperty('protection');
-    expect(breakdown).toHaveProperty('liability');
+  });
+
+  it('should adjust an asset and create new record', () => {
+    const assets = useAssetStore.getState().assets;
+    const firstAsset = assets[0];
+    if (!firstAsset) return; // Skip if no assets
+
+    const initialCount = assets.length;
+    const currentTotal = 'total' in firstAsset ? firstAsset.total : 0;
+
+    useAssetStore.getState().adjustAsset(firstAsset.id, {
+      total: currentTotal + 1000,
+    }, 'Test adjustment');
+
+    const newCount = useAssetStore.getState().assets.length;
+    expect(newCount).toBe(initialCount + 1); // New record created
   });
 });
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAssetStore } from '@/store';
-import { ASSET_SUB_TYPES, CATEGORY_NAMES, GEO_TAGS, RISK_TAGS, SOURCE_TAGS, type AssetCategory, type Asset, type SourceTag } from '@/types';
+import { ASSET_SUB_TYPES, CATEGORY_NAMES, GEO_TAGS, RISK_TAGS, SOURCE_TAGS, calculateHoldingMetrics, type AssetCategory, type Asset, type SourceTag } from '@/types';
 
 interface FormData {
   name: string;
@@ -12,15 +12,14 @@ interface FormData {
   entryTime: string;
   // 资产来源 (source)
   source: SourceTag;
-  // 公募基金/私募基金 specific
+  // 公募基金 specific
   code?: string;
   sharpeRatio?: string;
   topHoldings?: string;
-  // 金融类 (fund/private_fund/strategy/derivative) shared
+  // 金融类 (fund/private_fund/strategy/derivative) shared — 用户录入
   total?: string;
-  cost?: string;
   profit?: string;
-  returnRate?: string;
+  // 持仓成本和收益率由系统实时计算得出，无需录入
   // 定期 specific
   duration?: string;
   startDate?: string;
@@ -66,9 +65,7 @@ export function AssetFormPage() {
         sharpeRatio: 'sharpeRatio' in currentAsset ? String(currentAsset.sharpeRatio ?? '') : '',
         topHoldings: 'topHoldings' in currentAsset ? (currentAsset.topHoldings?.join(', ') ?? '') : '',
         total: 'total' in currentAsset ? String(currentAsset.total ?? '') : '',
-        cost: 'cost' in currentAsset ? String(currentAsset.cost ?? '') : '',
         profit: 'profit' in currentAsset ? String(currentAsset.profit ?? '') : '',
-        returnRate: 'returnRate' in currentAsset ? String(currentAsset.returnRate ?? '') : '',
         duration: 'duration' in currentAsset ? String(currentAsset.duration ?? '') : '',
         startDate: 'startDate' in currentAsset ? currentAsset.startDate : '',
         annualReturn: 'annualReturn' in currentAsset ? String(currentAsset.annualReturn ?? '') : '',
@@ -109,8 +106,8 @@ export function AssetFormPage() {
       if (!formData.total || parseFloat(formData.total) <= 0) {
         newErrors.total = '请输入有效的总额度';
       }
-      if (!formData.cost || parseFloat(formData.cost) <= 0) {
-        newErrors.cost = '请输入持有成本';
+      if (!formData.profit || parseFloat(formData.profit) < 0) {
+        newErrors.profit = '请输入有效的持有收益';
       }
     }
 
@@ -150,6 +147,14 @@ export function AssetFormPage() {
       entryTime: formData.entryTime,
     };
 
+    // 金融类资产统一计算 cost 和 returnRate
+    const buildFinancialAsset = () => {
+      const total = parseFloat(formData.total || '0');
+      const profit = parseFloat(formData.profit || '0');
+      const { cost, returnRate } = calculateHoldingMetrics(total, profit);
+      return { total, profit, cost, returnRate };
+    };
+
     switch (formData.category) {
       case 'fund':
         return {
@@ -160,29 +165,20 @@ export function AssetFormPage() {
           topHoldings: formData.topHoldings
             ? formData.topHoldings.split(',').map((t) => t.trim()).filter(Boolean)
             : undefined,
-          total: parseFloat(formData.total || '0'),
-          cost: parseFloat(formData.cost || '0'),
-          profit: parseFloat(formData.profit || '0'),
-          returnRate: parseFloat(formData.returnRate || '0'),
+          ...buildFinancialAsset(),
         } as Asset;
       case 'private_fund':
         return {
           ...baseData,
           source: formData.source as SourceTag,
           code: formData.code || undefined,
-          total: parseFloat(formData.total || '0'),
-          cost: parseFloat(formData.cost || '0'),
-          profit: parseFloat(formData.profit || '0'),
-          returnRate: parseFloat(formData.returnRate || '0'),
+          ...buildFinancialAsset(),
         } as Asset;
       case 'strategy':
         return {
           ...baseData,
           source: formData.source as SourceTag,
-          total: parseFloat(formData.total || '0'),
-          cost: parseFloat(formData.cost || '0'),
-          profit: parseFloat(formData.profit || '0'),
-          returnRate: parseFloat(formData.returnRate || '0'),
+          ...buildFinancialAsset(),
         } as Asset;
       case 'fixed':
         return {
@@ -203,10 +199,7 @@ export function AssetFormPage() {
         return {
           ...baseData,
           source: formData.source as SourceTag,
-          total: parseFloat(formData.total || '0'),
-          cost: parseFloat(formData.cost || '0'),
-          profit: parseFloat(formData.profit || '0'),
-          returnRate: parseFloat(formData.returnRate || '0'),
+          ...buildFinancialAsset(),
         } as Asset;
       case 'protection':
         return baseData as Asset;
@@ -215,13 +208,11 @@ export function AssetFormPage() {
     }
   };
 
-  const calculateReturnRate = () => {
-    const cost = parseFloat(formData.cost || '0');
+  /** 根据 total 和 profit 实时计算持仓成本和收益率 */
+  const computedMetrics = () => {
+    const total = parseFloat(formData.total || '0');
     const profit = parseFloat(formData.profit || '0');
-    if (cost > 0) {
-      return ((profit / cost) * 100).toFixed(2);
-    }
-    return '0';
+    return calculateHoldingMetrics(total, profit);
   };
 
   const handleSubmit = (e: React.FormEvent, isAdjustment = false) => {
@@ -302,41 +293,32 @@ export function AssetFormPage() {
               />
               {errors.total && <div className="form-error">{errors.total}</div>}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-              <div className="form-group">
-                <label className="form-label">持有成本 (元) <span style={{ color: 'var(--color-danger)' }}>*</span></label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className={`form-input ${errors.cost ? 'form-error' : ''}`}
-                  value={formData.cost ?? ''}
-                  onChange={(e) => handleChange('cost', e.target.value)}
-                />
-                {errors.cost && <div className="form-error">{errors.cost}</div>}
-              </div>
-              <div className="form-group">
-                <label className="form-label">持有收益 (元)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="form-input"
-                  value={formData.profit ?? ''}
-                  onChange={(e) => handleChange('profit', e.target.value)}
-                  onBlur={() => handleChange('returnRate', calculateReturnRate())}
-                />
-              </div>
-            </div>
             <div className="form-group">
-              <label className="form-label">持有收益率 (%)</label>
+              <label className="form-label">持有收益 (元)</label>
               <input
                 type="number"
                 step="0.01"
-                className="form-input"
-                value={formData.returnRate ?? ''}
-                onChange={(e) => handleChange('returnRate', e.target.value)}
-                placeholder="自动计算或手动输入"
+                className={`form-input ${errors.profit ? 'form-error' : ''}`}
+                value={formData.profit ?? ''}
+                onChange={(e) => handleChange('profit', e.target.value)}
               />
-              <div className="form-hint">收益 / 成本 × 100</div>
+              {errors.profit && <div className="form-error">{errors.profit}</div>}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+              <div className="form-group">
+                <label className="form-label">持仓成本 (元)</label>
+                <div className="form-display">
+                  {computedMetrics().cost >= 0 ? computedMetrics().cost.toLocaleString('zh-CN', { minimumFractionDigits: 2 }) : '—'}
+                </div>
+                <div className="form-hint">实时计算：总额度 - 持有收益</div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">持有收益率</label>
+                <div className="form-display">
+                  {computedMetrics().returnRate.toFixed(2)}%
+                </div>
+                <div className="form-hint">实时计算：收益 / 成本 × 100</div>
+              </div>
             </div>
           </>
         );
@@ -378,39 +360,32 @@ export function AssetFormPage() {
               />
               {errors.total && <div className="form-error">{errors.total}</div>}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-              <div className="form-group">
-                <label className="form-label">持有成本 (元) <span style={{ color: 'var(--color-danger)' }}>*</span></label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className={`form-input ${errors.cost ? 'form-error' : ''}`}
-                  value={formData.cost ?? ''}
-                  onChange={(e) => handleChange('cost', e.target.value)}
-                />
-                {errors.cost && <div className="form-error">{errors.cost}</div>}
-              </div>
-              <div className="form-group">
-                <label className="form-label">持有收益 (元)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="form-input"
-                  value={formData.profit ?? ''}
-                  onChange={(e) => handleChange('profit', e.target.value)}
-                  onBlur={() => handleChange('returnRate', calculateReturnRate())}
-                />
-              </div>
-            </div>
             <div className="form-group">
-              <label className="form-label">持有收益率 (%)</label>
+              <label className="form-label">持有收益 (元)</label>
               <input
                 type="number"
                 step="0.01"
-                className="form-input"
-                value={formData.returnRate ?? ''}
-                onChange={(e) => handleChange('returnRate', e.target.value)}
+                className={`form-input ${errors.profit ? 'form-error' : ''}`}
+                value={formData.profit ?? ''}
+                onChange={(e) => handleChange('profit', e.target.value)}
               />
+              {errors.profit && <div className="form-error">{errors.profit}</div>}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+              <div className="form-group">
+                <label className="form-label">持仓成本 (元)</label>
+                <div className="form-display">
+                  {computedMetrics().cost >= 0 ? computedMetrics().cost.toLocaleString('zh-CN', { minimumFractionDigits: 2 }) : '—'}
+                </div>
+                <div className="form-hint">实时计算：总额度 - 持有收益</div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">持有收益率</label>
+                <div className="form-display">
+                  {computedMetrics().returnRate.toFixed(2)}%
+                </div>
+                <div className="form-hint">实时计算：收益 / 成本 × 100</div>
+              </div>
             </div>
           </>
         );
@@ -442,39 +417,32 @@ export function AssetFormPage() {
               />
               {errors.total && <div className="form-error">{errors.total}</div>}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-              <div className="form-group">
-                <label className="form-label">持有成本 (元) <span style={{ color: 'var(--color-danger)' }}>*</span></label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className={`form-input ${errors.cost ? 'form-error' : ''}`}
-                  value={formData.cost ?? ''}
-                  onChange={(e) => handleChange('cost', e.target.value)}
-                />
-                {errors.cost && <div className="form-error">{errors.cost}</div>}
-              </div>
-              <div className="form-group">
-                <label className="form-label">持有收益 (元)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="form-input"
-                  value={formData.profit ?? ''}
-                  onChange={(e) => handleChange('profit', e.target.value)}
-                  onBlur={() => handleChange('returnRate', calculateReturnRate())}
-                />
-              </div>
-            </div>
             <div className="form-group">
-              <label className="form-label">持有收益率 (%)</label>
+              <label className="form-label">持有收益 (元)</label>
               <input
                 type="number"
                 step="0.01"
-                className="form-input"
-                value={formData.returnRate ?? ''}
-                onChange={(e) => handleChange('returnRate', e.target.value)}
+                className={`form-input ${errors.profit ? 'form-error' : ''}`}
+                value={formData.profit ?? ''}
+                onChange={(e) => handleChange('profit', e.target.value)}
               />
+              {errors.profit && <div className="form-error">{errors.profit}</div>}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+              <div className="form-group">
+                <label className="form-label">持仓成本 (元)</label>
+                <div className="form-display">
+                  {computedMetrics().cost >= 0 ? computedMetrics().cost.toLocaleString('zh-CN', { minimumFractionDigits: 2 }) : '—'}
+                </div>
+                <div className="form-hint">实时计算：总额度 - 持有收益</div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">持有收益率</label>
+                <div className="form-display">
+                  {computedMetrics().returnRate.toFixed(2)}%
+                </div>
+                <div className="form-hint">实时计算：收益 / 成本 × 100</div>
+              </div>
             </div>
           </>
         );
@@ -597,39 +565,32 @@ export function AssetFormPage() {
               />
               {errors.total && <div className="form-error">{errors.total}</div>}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-              <div className="form-group">
-                <label className="form-label">持有成本 (元) <span style={{ color: 'var(--color-danger)' }}>*</span></label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className={`form-input ${errors.cost ? 'form-error' : ''}`}
-                  value={formData.cost ?? ''}
-                  onChange={(e) => handleChange('cost', e.target.value)}
-                />
-                {errors.cost && <div className="form-error">{errors.cost}</div>}
-              </div>
-              <div className="form-group">
-                <label className="form-label">持有收益 (元)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="form-input"
-                  value={formData.profit ?? ''}
-                  onChange={(e) => handleChange('profit', e.target.value)}
-                  onBlur={() => handleChange('returnRate', calculateReturnRate())}
-                />
-              </div>
-            </div>
             <div className="form-group">
-              <label className="form-label">持有收益率 (%)</label>
+              <label className="form-label">持有收益 (元)</label>
               <input
                 type="number"
                 step="0.01"
-                className="form-input"
-                value={formData.returnRate ?? ''}
-                onChange={(e) => handleChange('returnRate', e.target.value)}
+                className={`form-input ${errors.profit ? 'form-error' : ''}`}
+                value={formData.profit ?? ''}
+                onChange={(e) => handleChange('profit', e.target.value)}
               />
+              {errors.profit && <div className="form-error">{errors.profit}</div>}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+              <div className="form-group">
+                <label className="form-label">持仓成本 (元)</label>
+                <div className="form-display">
+                  {computedMetrics().cost >= 0 ? computedMetrics().cost.toLocaleString('zh-CN', { minimumFractionDigits: 2 }) : '—'}
+                </div>
+                <div className="form-hint">实时计算：总额度 - 持有收益</div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">持有收益率</label>
+                <div className="form-display">
+                  {computedMetrics().returnRate.toFixed(2)}%
+                </div>
+                <div className="form-hint">实时计算：收益 / 成本 × 100</div>
+              </div>
             </div>
           </>
         );

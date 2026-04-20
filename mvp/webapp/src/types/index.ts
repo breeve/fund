@@ -77,10 +77,10 @@ export interface PublicFundAsset extends BaseAsset {
   sharpeRatio?: number;       // 夏普比率
   topHoldings?: string[];     // 重仓股票
   source: SourceTag;          // 资产来源
-  total: number;              // 总额度(包含本金+收益)
-  cost: number;               // 持有成本
-  profit: number;             // 持有收益
-  returnRate: number;         // 持有收益率(计算得到) = profit / cost * 100
+  total: number;              // 总额度(包含本金+收益) — 用户录入
+  profit: number;             // 持有收益 — 用户录入
+  cost: number;               // 持仓成本 = total - profit — 实时计算
+  returnRate: number;         // 持有收益率 = profit / cost * 100 — 实时计算
 }
 
 // Private Fund (私募基金)
@@ -88,20 +88,20 @@ export interface PrivateFundAsset extends BaseAsset {
   category: 'private_fund';
   code?: string;              // 基金编码
   source: SourceTag;          // 资产来源: 蚂蚁财富
-  total: number;              // 总额度(包含本金+收益)
-  cost: number;               // 持有成本
-  profit: number;             // 持有收益
-  returnRate: number;         // 持有收益率(计算得到)
+  total: number;              // 总额度(包含本金+收益) — 用户录入
+  profit: number;             // 持有收益 — 用户录入
+  cost: number;               // 持仓成本 = total - profit — 实时计算
+  returnRate: number;         // 持有收益率 = profit / cost * 100 — 实时计算
 }
 
 // Strategy (策略)
 export interface StrategyAsset extends BaseAsset {
   category: 'strategy';
   source: SourceTag;          // 资产来源: 蚂蚁财富
-  total: number;              // 总额度(包含本金+收益)
-  cost: number;               // 持有成本
-  profit: number;             // 持有收益
-  returnRate: number;         // 持有收益率(计算得到)
+  total: number;              // 总额度(包含本金+收益) — 用户录入
+  profit: number;             // 持有收益 — 用户录入
+  cost: number;               // 持仓成本 = total - profit — 实时计算
+  returnRate: number;         // 持有收益率 = profit / cost * 100 — 实时计算
 }
 
 // Fixed Term (定期)
@@ -125,10 +125,10 @@ export interface LiquidAsset extends BaseAsset {
 export interface DerivativeAsset extends BaseAsset {
   category: 'derivative';
   source: SourceTag;          // 资产来源: 银行
-  total: number;              // 总额度
-  cost: number;               // 持有成本
-  profit: number;             // 持有收益
-  returnRate: number;         // 持有收益率(计算得到)
+  total: number;              // 总额度 — 用户录入
+  profit: number;             // 持有收益 — 用户录入
+  cost: number;               // 持仓成本 = total - profit — 实时计算
+  returnRate: number;         // 持有收益率 = profit / cost * 100 — 实时计算
 }
 
 // Protection (保障)
@@ -277,8 +277,19 @@ export function isProtection(asset: Asset): asset is ProtectionAsset {
   return asset.category === 'protection';
 }
 
-// Calculate return rate
+// Calculate return rate: returnRate = profit / cost * 100
 export function calculateReturnRate(profit: number, cost: number): number {
   if (cost === 0) return 0;
   return (profit / cost) * 100;
+}
+
+/**
+ * 根据用户录入的 total 和 profit，实时计算持仓成本和收益率
+ * cost = total - profit
+ * returnRate = profit / cost * 100
+ */
+export function calculateHoldingMetrics(total: number, profit: number): { cost: number; returnRate: number } {
+  const cost = total - profit;
+  const returnRate = calculateReturnRate(profit, cost);
+  return { cost, returnRate };
 }

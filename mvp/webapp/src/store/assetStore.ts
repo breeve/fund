@@ -81,7 +81,7 @@ function generateSampleAssets(): Asset[] {
       createdAt: now,
       updatedAt: now,
     },
-    // 私募基金 (Private Fund)
+    // 私募基金 (Private Fund) — cost = total - profit
     {
       id: uuidv4(),
       name: 'XX债券策略',
@@ -90,16 +90,16 @@ function generateSampleAssets(): Asset[] {
       code: 'PF2023001',
       source: '蚂蚁财富' as const,
       total: 500000,
-      cost: 500000,
       profit: 35000,
-      returnRate: 7.0,
+      cost: 465000,           // = total - profit
+      returnRate: 7.53,       // = profit / cost * 100
       tags: ['国内', '中低风险'],
       notes: '一年期已到期',
       entryTime,
       createdAt: now,
       updatedAt: now,
     },
-    // 策略 (Strategy)
+    // 策略 (Strategy) — cost = total - profit
     {
       id: uuidv4(),
       name: '全球精选90',
@@ -107,9 +107,9 @@ function generateSampleAssets(): Asset[] {
       subType: '全球精选90',
       source: '蚂蚁财富' as const,
       total: 300000,
-      cost: 280000,
       profit: 20000,
-      returnRate: 7.14,
+      cost: 280000,           // = total - profit
+      returnRate: 7.14,       // = profit / cost * 100
       tags: ['全球', '中风险'],
       notes: '全球分散配置',
       entryTime,

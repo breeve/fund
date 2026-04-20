@@ -87,8 +87,9 @@ export function AssetDetailPage() {
             <span className="detail-value">{formatAmount(asset.total)}</span>
           </div>
           <div className="detail-row">
-            <span className="detail-label">持有成本</span>
+            <span className="detail-label">持仓成本</span>
             <span className="detail-value">{formatAmount(asset.cost)}</span>
+            <span className="detail-hint">(总额度 - 持有收益)</span>
           </div>
           <div className="detail-row">
             <span className="detail-label">持有收益</span>
@@ -125,8 +126,9 @@ export function AssetDetailPage() {
             <span className="detail-value">{formatAmount(asset.total)}</span>
           </div>
           <div className="detail-row">
-            <span className="detail-label">持有成本</span>
+            <span className="detail-label">持仓成本</span>
             <span className="detail-value">{formatAmount(asset.cost)}</span>
+            <span className="detail-hint">(总额度 - 持有收益)</span>
           </div>
           <div className="detail-row">
             <span className="detail-label">持有收益</span>
@@ -157,8 +159,9 @@ export function AssetDetailPage() {
             <span className="detail-value">{formatAmount(asset.total)}</span>
           </div>
           <div className="detail-row">
-            <span className="detail-label">持有成本</span>
+            <span className="detail-label">持仓成本</span>
             <span className="detail-value">{formatAmount(asset.cost)}</span>
+            <span className="detail-hint">(总额度 - 持有收益)</span>
           </div>
           <div className="detail-row">
             <span className="detail-label">持有收益</span>
@@ -233,8 +236,9 @@ export function AssetDetailPage() {
             <span className="detail-value">{formatAmount(asset.total)}</span>
           </div>
           <div className="detail-row">
-            <span className="detail-label">持有成本</span>
+            <span className="detail-label">持仓成本</span>
             <span className="detail-value">{formatAmount(asset.cost)}</span>
+            <span className="detail-hint">(总额度 - 持有收益)</span>
           </div>
           <div className="detail-row">
             <span className="detail-label">持有收益</span>

@@ -220,7 +220,7 @@ export interface AssetFilter {
 }
 
 // Export formats
-export type ExportFormat = 'json' | 'csv';
+export type ExportFormat = 'json' | 'csv' | 'excel';
 
 export interface ExportOptions {
   format: ExportFormat;

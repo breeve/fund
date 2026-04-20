@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useConfigStore, MARKET_DATA_PROVIDERS, LLM_PROVIDERS } from '@/store';
 import { saveAs } from 'file-saver';
 import { useAssetStore } from '@/store';
+import { exportAssetsToExcel, importAssetsFromExcel, EXCEL_CONFIG_VERSION } from '@/services/assetExcel';
 import type { Asset } from '@/types';
 
 export function SettingsPage() {
@@ -11,13 +12,13 @@ export function SettingsPage() {
   const [importStatus, setImportStatus] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleExport = async (format: 'json' | 'csv') => {
+  const handleExport = async (format: 'json' | 'csv' | 'excel') => {
     try {
       if (format === 'json') {
         const data = JSON.stringify({ assets, exportedAt: new Date().toISOString() }, null, 2);
         const blob = new Blob([data], { type: 'application/json' });
         saveAs(blob, `fund-assets-${new Date().toISOString().split('T')[0]}.json`);
-      } else {
+      } else if (format === 'csv') {
         // CSV export
         const headers = ['名称', '类别', '子类别', '总额度', '标签', '备注', '录入时间', '创建时间', '更新时间'];
         const rows = assets.map((a) => [
@@ -34,6 +35,9 @@ export function SettingsPage() {
         const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
         const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
         saveAs(blob, `fund-assets-${new Date().toISOString().split('T')[0]}.csv`);
+      } else {
+        // Excel export
+        exportAssetsToExcel(assets);
       }
       setExportStatus('导出成功');
       setTimeout(() => setExportStatus(''), 3000);
@@ -47,73 +51,101 @@ export function SettingsPage() {
     if (!file) return;
 
     try {
-      const text = await file.text();
-      let importedAssets: Asset[] = [];
+      if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+        // Excel import
+        const result = await importAssetsFromExcel(file);
 
-      if (file.name.endsWith('.json')) {
-        const parsed = JSON.parse(text);
-        importedAssets = parsed.assets || [];
-      } else if (file.name.endsWith('.csv')) {
-        // Parse CSV
-        const lines = text.split('\n').filter(line => line.trim());
-        if (lines.length < 2) {
-          setImportStatus('CSV 文件格式错误');
+        if (!result.success) {
+          setImportStatus(result.errors[0] ?? '导入失败');
+          setTimeout(() => setImportStatus(''), 4000);
           return;
         }
-        // Skip header, parse data rows
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i];
-          if (!line) continue;
-          const values = line.split(',').map(v => v.replace(/^"|"$/g, '').trim());
-          if (values.length >= 7 && values[0] && values[1]) {
-            const category = values[1] as Asset['category'];
-            // Build asset based on category
-            const baseAsset = {
-              name: values[0],
-              category,
-              subType: values[2] ?? '',
-              tags: values[4] ? values[4].split(';') : [],
-              notes: values[5] ?? '',
-              entryTime: values[6] || new Date().toISOString().split('T')[0],
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            };
-            // Add category-specific fields
-            if (category === 'fixed') {
-              importedAssets.push({
-                ...baseAsset,
-                investmentAmount: parseFloat(values[3] ?? '') || 0,
-              } as Asset);
-            } else if (category !== 'protection') {
-              importedAssets.push({
-                ...baseAsset,
-                total: parseFloat(values[3] ?? '') || 0,
-              } as Asset);
-            } else {
-              importedAssets.push(baseAsset as Asset);
+
+        let successCount = 0;
+        for (const assetData of result.assets) {
+          try {
+            addAsset(assetData);
+            successCount++;
+          } catch {
+            // Skip invalid assets
+          }
+        }
+
+        const versionNote = result.version < EXCEL_CONFIG_VERSION
+          ? `（检测到格式版本 V${result.version}，已自动适配）`
+          : '';
+        setImportStatus(`Excel 导入成功 ${successCount} 笔${versionNote}`);
+        setTimeout(() => setImportStatus(''), 5000);
+      } else {
+        // JSON or CSV import
+        const text = await file.text();
+        let importedAssets: Asset[] = [];
+
+        if (file.name.endsWith('.json')) {
+          const parsed = JSON.parse(text);
+          importedAssets = parsed.assets || [];
+        } else if (file.name.endsWith('.csv')) {
+          // Parse CSV
+          const lines = text.split('\n').filter(line => line.trim());
+          if (lines.length < 2) {
+            setImportStatus('CSV 文件格式错误');
+            return;
+          }
+          // Skip header, parse data rows
+          for (let i = 1; i < lines.length; i++) {
+            const line = lines[i];
+            if (!line) continue;
+            const values = line.split(',').map(v => v.replace(/^"|"$/g, '').trim());
+            if (values.length >= 7 && values[0] && values[1]) {
+              const category = values[1] as Asset['category'];
+              // Build asset based on category
+              const baseAsset = {
+                name: values[0],
+                category,
+                subType: values[2] ?? '',
+                tags: values[4] ? values[4].split(';') : [],
+                notes: values[5] ?? '',
+                entryTime: values[6] || new Date().toISOString().split('T')[0],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              };
+              // Add category-specific fields
+              if (category === 'fixed') {
+                importedAssets.push({
+                  ...baseAsset,
+                  investmentAmount: parseFloat(values[3] ?? '') || 0,
+                } as Asset);
+              } else if (category !== 'protection') {
+                importedAssets.push({
+                  ...baseAsset,
+                  total: parseFloat(values[3] ?? '') || 0,
+                } as Asset);
+              } else {
+                importedAssets.push(baseAsset as Asset);
+              }
             }
           }
         }
-      }
 
-      if (importedAssets.length === 0) {
-        setImportStatus('未找到可导入的资产数据');
-        return;
-      }
-
-      // Add imported assets to store
-      let successCount = 0;
-      for (const assetData of importedAssets) {
-        try {
-          addAsset(assetData);
-          successCount++;
-        } catch {
-          // Skip invalid assets
+        if (importedAssets.length === 0) {
+          setImportStatus('未找到可导入的资产数据');
+          return;
         }
-      }
 
-      setImportStatus(`成功导入 ${successCount} 笔资产`);
-      setTimeout(() => setImportStatus(''), 3000);
+        // Add imported assets to store
+        let successCount = 0;
+        for (const assetData of importedAssets) {
+          try {
+            addAsset(assetData);
+            successCount++;
+          } catch {
+            // Skip invalid assets
+          }
+        }
+
+        setImportStatus(`成功导入 ${successCount} 笔资产`);
+        setTimeout(() => setImportStatus(''), 3000);
+      }
     } catch {
       setImportStatus('导入失败，请检查文件格式');
     }
@@ -278,21 +310,24 @@ export function SettingsPage() {
         </div>
 
         <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', marginBottom: 'var(--space-4)' }}>
+          <button className="btn btn-primary" onClick={() => handleExport('excel')}>
+            📊 导出 Excel
+          </button>
           <button className="btn btn-secondary" onClick={() => handleExport('json')}>
-            📥 导出 JSON
+            📄 导出 JSON
           </button>
           <button className="btn btn-secondary" onClick={() => handleExport('csv')}>
-            📥 导出 CSV
+            📋 导出 CSV
           </button>
           <input
             type="file"
             ref={fileInputRef}
-            accept=".json,.csv"
+            accept=".json,.csv,.xlsx,.xls"
             onChange={handleImport}
             style={{ display: 'none' }}
           />
           <button className="btn btn-secondary" onClick={() => fileInputRef.current?.click()}>
-            📤 导入数据
+            📥 导入数据（JSON/CSV/Excel）
           </button>
         </div>
 

@@ -10,6 +10,7 @@
 
 PKG_MANAGER ?= npm
 SUB_MAKE := $(MAKE) --directory=mvp PKG_MANAGER=$(PKG_MANAGER)
+FUND_MAKE := $(MAKE) --directory=fund
 
 # ── Colours ────────────────────────────────────────────────────────────────────
 GREEN  := $(shell tput setaf 2 2>/dev/null || echo '')
@@ -35,6 +36,9 @@ help: ## Show this help message
 	@echo ""
 	@echo "$(YELLOW)  MVP Webapp  (prefixed with 'mvp-')$(RESET)"
 	@$(SUB_MAKE) help 2>/dev/null | awk '{print "  mvp-" $$0}' | sed '1,3d'
+	@echo ""
+	@echo "$(YELLOW)  Flutter Fund  (prefixed with 'fund-')$(RESET)"
+	@$(FUND_MAKE) help 2>/dev/null | awk '{print "  fund-" $$0}' | sed '1,3d'
 	@echo ""
 	@echo "$(DIM)  PKG_MANAGER=$(PKG_MANAGER)  — override with: make mvp-build PKG_MANAGER=pnpm$(RESET)"
 
@@ -67,6 +71,45 @@ mvp-typecheck:      ## TypeScript type-check only
 
 mvp-clean:          ## Clean build artifacts
 	$(SUB_MAKE) mvp-clean
+
+# ── Flutter Fund targets ───────────────────────────────────────────────────────
+.PHONY: fund
+fund: ## Run arbitrary fund target
+	@echo "$(YELLOW)Use: make fund-<target>   e.g. make fund-web$(RESET)"
+
+.PHONY: fund-web fund-web-release fund-dev fund-analyze fund-clean fund-deps fund-test fund-ios fund-macos
+fund-web:          ## Build Flutter web app
+	$(FUND_MAKE) web
+
+fund-web-release:  ## Build Flutter web app for production
+	$(FUND_MAKE) web-release
+
+fund-dev:          ## Run Flutter in dev mode
+	$(FUND_MAKE) dev
+
+fund-serve:        ## Serve build/web on http://localhost:8080
+	$(FUND_MAKE) serve
+
+fund-analyze:      ## Run Flutter analyzer
+	$(FUND_MAKE) analyze
+
+fund-clean:        ## Clean build artifacts
+	$(FUND_MAKE) clean
+
+fund-deps:         ## Get dependencies
+	$(FUND_MAKE) deps
+
+fund-test:         ## Run tests
+	$(FUND_MAKE) test
+
+fund-ios:          ## Build iOS (requires macOS)
+	$(FUND_MAKE) ios
+
+fund-macos:        ## Build macOS (requires macOS)
+	$(FUND_MAKE) macos
+
+fund-serve-port:   ## Serve build/web on custom port (PORT=8080 make fund-serve-port PORT=9000)
+	$(FUND_MAKE) serve-port PORT=$(PORT)
 
 # ── PWA ────────────────────────────────────────────────────────────────────────
 .PHONY: pwa-icons pwa-preview github-pages

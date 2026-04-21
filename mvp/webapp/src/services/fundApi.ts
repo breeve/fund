@@ -13,13 +13,13 @@ import { useConfigStore, DEFAULT_API_ENDPOINTS } from '@/store/configStore';
 
 // EastMoney fund info response (gzipped JSONP)
 interface FundGZResponse {
-  success: string;
-  name: string;
-  jzrq: string; // NAV date
-  dwjz: string; // NAV
-  gsz: string; // estimated NAV
-  gszzl: string; // daily change %
-  gztime: string; // update time
+  fundcode?: string;
+  name?: string;
+  jzrq?: string; // NAV date
+  dwjz?: string; // NAV
+  gsz?: string; // estimated NAV
+  gszzl?: string; // daily change %
+  gztime?: string; // update time
 }
 
 // EastMoney NAV history response
@@ -115,15 +115,16 @@ export async function getFundInfo(code: string): Promise<FundInfo | null> {
 
     const text = await response.text();
 
-    // Parse JSONP response: callback({"success":true,...})
-    const match = text.match(/callback\((.*)\)/);
+    // Parse JSONP response: jsonpgz({"fundcode":"010041",...})
+    const match = text.match(/jsonpgz\((.*)\)/);
     if (!match || !match[1]) {
       return null;
     }
 
     const data: FundGZResponse = JSON.parse(match[1]);
 
-    if (data.success === 'true') {
+    // fundgz API doesn't return a "success" field, but returns fundcode if found
+    if (data.fundcode) {
       const fundInfo: FundInfo = {
         code: code,
         name: data.name || '',

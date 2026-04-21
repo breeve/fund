@@ -21,8 +21,14 @@ export function OverviewPage() {
     recordTrendPoint(totalAssets, 0); // No liabilities in new model
   }, []);
 
-  // Calculate change (mock)
-  const changeRate = 2.35;
+  // Calculate change rate from trend history
+  const changeRate = (() => {
+    if (trendHistory.length < 2) return 0;
+    const latest = trendHistory[trendHistory.length - 1];
+    const previous = trendHistory[trendHistory.length - 2];
+    if (!latest || !previous || previous.netAssets === 0) return 0;
+    return ((latest.netAssets - previous.netAssets) / previous.netAssets) * 100;
+  })();
 
   return (
     <div className="animate-fade-in">

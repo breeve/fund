@@ -199,7 +199,7 @@ export function FundDiagnosisPage() {
           <div>
             <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>与大盘相关性</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>
-              {riskMetrics.correlationToMarket.toFixed(2)}
+              {riskMetrics.correlationToMarket != null ? riskMetrics.correlationToMarket.toFixed(2) : '--'}
             </div>
           </div>
         </div>

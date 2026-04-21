@@ -85,7 +85,7 @@ export const useFundStore = create<FundState>((set, get) => ({
           volatility,
           maxDrawdown,
           sharpeRatio,
-          correlationToMarket: 0.85,
+          correlationToMarket: null,
         },
         rating: Math.max(1, Math.min(5, rating)),
         recommendation: sharpeRatio > 1.2 ? '推荐持有' : '建议观望',

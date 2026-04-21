@@ -21,6 +21,18 @@ export function SettingsPage() {
     fundHoldings: config.customApiEndpoints?.fundHoldings ?? DEFAULT_API_ENDPOINTS.fundHoldings,
   });
 
+  // Fund diagnosis test state
+  const [fundTestCode, setFundTestCode] = useState('');
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResults, setTestResults] = useState<Array<{
+    api: string;
+    endpoint: string;
+    success: boolean;
+    duration: number;
+    data?: string;
+    error?: string;
+  }>>([]);
+
   const handleSaveCustomEndpoints = () => {
     setCustomApiEndpoints(customEndpoints);
     setShowAdvancedConfig(false);
@@ -28,6 +40,114 @@ export function SettingsPage() {
 
   const handleResetEndpoints = () => {
     setCustomEndpoints(DEFAULT_API_ENDPOINTS);
+  };
+
+  // Fund diagnosis test
+  const handleTestFundApi = async () => {
+    const code = fundTestCode.trim();
+    if (!code) return;
+
+    setIsTesting(true);
+    setTestResults([]);
+
+    const results: typeof testResults = [];
+
+    // Test 1: Fund Search/Info API (fundgz)
+    const start1 = Date.now();
+    try {
+      const endpoints = config.customApiEndpoints?.fundInfo ?? DEFAULT_API_ENDPOINTS.fundInfo;
+      const url = endpoints.replace('{code}', code);
+      const response = await fetch(`${url}?rt=${Date.now()}`, {
+        headers: { 'Accept': '*/*', 'Referer': 'https://fund.eastmoney.com' },
+      });
+      const text = await response.text();
+      results.push({
+        api: '基金信息 API (fundgz)',
+        endpoint: url,
+        success: response.ok && text.includes('jsonpgz'),
+        duration: Date.now() - start1,
+        data: text.substring(0, 500),
+        error: !response.ok ? `HTTP ${response.status}` : undefined,
+      });
+    } catch (err) {
+      results.push({
+        api: '基金信息 API (fundgz)',
+        endpoint: DEFAULT_API_ENDPOINTS.fundInfo.replace('{code}', code),
+        success: false,
+        duration: Date.now() - start1,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+    }
+
+    // Test 2: Fund NAV History API (push2his)
+    const start2 = Date.now();
+    try {
+      const endpoints = config.customApiEndpoints?.fundNav ?? DEFAULT_API_ENDPOINTS.fundNav;
+      const params = new URLSearchParams({
+        secid: `1.${code}`,
+        ut: 'fa5fd1943c7b386f172d6893dbfba10b',
+        fields1: 'f1,f2,f3,f4,f5,f6',
+        fields2: 'f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61',
+        klt: '101',
+        fqt: '1',
+        beg: '0',
+        end: '20500101',
+        smplmt: '460',
+        lmt: '0',
+      });
+      const url = `${endpoints}?${params}`;
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json', 'Referer': 'https://fund.eastmoney.com' },
+      });
+      const json = await response.json();
+      results.push({
+        api: '基金净值 API (push2his)',
+        endpoint: url.substring(0, 200) + (url.length > 200 ? '...' : ''),
+        success: response.ok && json?.data?.klines != null,
+        duration: Date.now() - start2,
+        data: JSON.stringify(json).substring(0, 500),
+        error: !response.ok ? `HTTP ${response.status}` : undefined,
+      });
+    } catch (err) {
+      results.push({
+        api: '基金净值 API (push2his)',
+        endpoint: 'push2his.eastmoney.com/api/qt/stock/kline/get',
+        success: false,
+        duration: Date.now() - start2,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+    }
+
+    // Test 3: Fund Holdings API (fundf10)
+    const start3 = Date.now();
+    try {
+      const endpoints = config.customApiEndpoints?.fundHoldings ?? DEFAULT_API_ENDPOINTS.fundHoldings;
+      const url = `${endpoints}?type=jjcc&code=${code}&topline=10`;
+      const response = await fetch(url, {
+        headers: { 'Accept': 'text/html', 'Referer': 'https://fund.eastmoney.com' },
+      });
+      const text = await response.text();
+      const hasData = text.includes('jjcc') || text.includes('jjcc =');
+      results.push({
+        api: '基金持仓 API (fundf10)',
+        endpoint: url,
+        success: response.ok && hasData,
+        duration: Date.now() - start3,
+        data: text.includes('jjcc') ? `找到持仓数据 (${text.length} bytes)` : '未找到持仓数据',
+        error: !response.ok ? `HTTP ${response.status}` : undefined,
+      });
+    } catch (err) {
+      results.push({
+        api: '基金持仓 API (fundf10)',
+        endpoint: DEFAULT_API_ENDPOINTS.fundHoldings,
+        success: false,
+        duration: Date.now() - start3,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+    }
+
+    setTestResults(results);
+    setIsTesting(false);
   };
 
   const handleExport = async (format: 'json' | 'csv' | 'excel') => {
@@ -334,6 +454,83 @@ export function SettingsPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Fund Diagnosis Test */}
+      <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
+        <div className="card-header">
+          <h2 className="card-title">基金诊断测试</h2>
+        </div>
+        <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-3)' }}>
+          输入基金代码，测试 EastMoney API 调用并查看原始返回数据。
+        </p>
+
+        <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
+          <input
+            type="text"
+            className="form-input"
+            placeholder="输入基金代码，如 010041"
+            value={fundTestCode}
+            onChange={(e) => setFundTestCode(e.target.value)}
+            style={{ maxWidth: 200 }}
+            onKeyDown={(e) => e.key === 'Enter' && handleTestFundApi()}
+          />
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleTestFundApi}
+            disabled={isTesting || !fundTestCode.trim()}
+          >
+            {isTesting ? '测试中...' : '测试'}
+          </button>
+        </div>
+
+        {testResults.length > 0 && (
+          <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+            {testResults.map((result, index) => (
+              <div
+                key={index}
+                style={{
+                  padding: 'var(--space-3)',
+                  backgroundColor: result.success ? '#dcfce7' : '#fef2f2',
+                  borderRadius: 'var(--radius)',
+                  border: `1px solid ${result.success ? '#22c55e' : '#ef4444'}`,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+                  <span style={{ fontWeight: 600 }}>{result.api}</span>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    color: result.success ? '#166534' : '#dc2626',
+                  }}>
+                    {result.success ? '成功' : '失败'} ({result.duration}ms)
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#666', marginBottom: 'var(--space-2)', wordBreak: 'break-all' }}>
+                  {result.endpoint}
+                </div>
+                <details>
+                  <summary style={{ cursor: 'pointer', fontSize: '0.875rem', marginBottom: 'var(--space-1)' }}>
+                    查看{result.success ? '返回数据' : '错误信息'}
+                  </summary>
+                  <pre style={{
+                    marginTop: 'var(--space-2)',
+                    padding: 'var(--space-2)',
+                    backgroundColor: '#f8f8f8',
+                    borderRadius: 'var(--radius)',
+                    fontSize: '0.75rem',
+                    maxHeight: 200,
+                    overflow: 'auto',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-all',
+                  }}>
+                    {result.success ? result.data : result.error}
+                  </pre>
+                </details>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* LLM Configuration */}

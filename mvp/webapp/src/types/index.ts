@@ -176,7 +176,7 @@ export interface FundDiagnosis {
     volatility: number;       // 波动率
     maxDrawdown: number;      // 最大回撤
     sharpeRatio: number;      // 夏普比率
-    correlationToMarket: number;
+    correlationToMarket?: number | null; // 与大盘相关性，暂不支持
   };
   rating: number;             // 1-5 星
   recommendation?: string;

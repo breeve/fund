@@ -32,6 +32,7 @@ export function SettingsPage() {
     data?: string;
     error?: string;
   }>>([]);
+  const [corsProxy, setCorsProxy] = useState('https://api.codetabs.com/v1/proxy?quest=');
 
   const handleSaveCustomEndpoints = () => {
     setCustomApiEndpoints(customEndpoints);
@@ -52,35 +53,77 @@ export function SettingsPage() {
 
     const results: typeof testResults = [];
 
-    // Test 1: Fund Search/Info API (fundgz)
+    // JSONP劫持方式获取fundgz数据 (script标签天然跨域)
+    const fetchFundGZ = (url: string): Promise<{ success: boolean; data: string; error?: string }> => {
+      return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          resolve({ success: false, data: '', error: '请求超时' });
+        }, 10000);
+
+        const originalJsonpgz = (window as any).jsonpgz;
+        (window as any).jsonpgz = (data: any) => {
+          clearTimeout(timeout);
+          (window as any).jsonpgz = originalJsonpgz;
+          resolve({ success: true, data: JSON.stringify(data) });
+        };
+
+        const script = document.createElement('script');
+        script.src = url;
+        script.onerror = () => {
+          clearTimeout(timeout);
+          (window as any).jsonpgz = originalJsonpgz;
+          resolve({ success: false, data: '', error: '脚本加载失败' });
+        };
+        document.head.appendChild(script);
+        setTimeout(() => {
+          if (document.head.contains(script)) {
+            document.head.removeChild(script);
+          }
+        }, 15000);
+      });
+    };
+
+    // Test 1: Fund Search/Info API (fundgz) - 使用JSONP劫持
     const start1 = Date.now();
+    let fundgzData = '';
+    let fundgzError = '';
+    let fundgzSuccess = false;
     try {
       const endpoints = config.customApiEndpoints?.fundInfo ?? DEFAULT_API_ENDPOINTS.fundInfo;
-      const url = endpoints.replace('{code}', code);
-      const response = await fetch(`${url}?rt=${Date.now()}`, {
-        headers: { 'Accept': '*/*', 'Referer': 'https://fund.eastmoney.com' },
-      });
-      const text = await response.text();
+      const url = `${endpoints.replace('{code}', code)}?rt=${Date.now()}`;
+      const result = await fetchFundGZ(url);
+      fundgzData = result.data;
+      fundgzSuccess = result.success && result.data.includes('fundcode');
+      if (!result.success) {
+        fundgzError = result.error || '请求失败';
+      } else if (!result.data.includes('fundcode')) {
+        fundgzError = '数据格式错误';
+      }
       results.push({
         api: '基金信息 API (fundgz)',
         endpoint: url,
-        success: response.ok && text.includes('jsonpgz'),
+        success: fundgzSuccess,
         duration: Date.now() - start1,
-        data: text.substring(0, 500),
-        error: !response.ok ? `HTTP ${response.status}` : undefined,
+        data: fundgzData,
+        error: fundgzError,
       });
     } catch (err) {
+      fundgzError = err instanceof Error ? err.message : String(err);
       results.push({
         api: '基金信息 API (fundgz)',
         endpoint: DEFAULT_API_ENDPOINTS.fundInfo.replace('{code}', code),
         success: false,
         duration: Date.now() - start1,
-        error: err instanceof Error ? err.message : 'Unknown error',
+        data: fundgzData,
+        error: fundgzError,
       });
     }
 
-    // Test 2: Fund NAV History API (push2his)
+    // Test 2: Fund NAV History API (push2his) - 通过代理
     const start2 = Date.now();
+    let navData = '';
+    let navError = '';
+    let navSuccess = false;
     try {
       const endpoints = config.customApiEndpoints?.fundNav ?? DEFAULT_API_ENDPOINTS.fundNav;
       const params = new URLSearchParams({
@@ -96,53 +139,74 @@ export function SettingsPage() {
         lmt: '0',
       });
       const url = `${endpoints}?${params}`;
-      const response = await fetch(url, {
-        headers: { 'Accept': 'application/json', 'Referer': 'https://fund.eastmoney.com' },
-      });
-      const json = await response.json();
+      const proxyUrl = corsProxy.trim() || 'https://api.codetabs.com/v1/proxy?quest=';
+      const fetchUrl = proxyUrl + encodeURIComponent(url);
+      const response = await fetch(fetchUrl, { method: 'GET' });
+      navData = await response.text();
+      if (!response.ok) {
+        navError = `HTTP ${response.status}`;
+      } else if (!navData || navData.trim() === '') {
+        navError = '返回空数据';
+      } else if (!navData.includes('klines')) {
+        navError = '返回数据格式错误';
+      }
+      navSuccess = response.ok && navData.includes('klines');
       results.push({
         api: '基金净值 API (push2his)',
-        endpoint: url.substring(0, 200) + (url.length > 200 ? '...' : ''),
-        success: response.ok && json?.data?.klines != null,
+        endpoint: url.substring(0, 80) + '...',
+        success: navSuccess,
         duration: Date.now() - start2,
-        data: JSON.stringify(json).substring(0, 500),
-        error: !response.ok ? `HTTP ${response.status}` : undefined,
+        data: navData,
+        error: navError,
       });
     } catch (err) {
+      navError = err instanceof Error ? err.message : '请求失败';
       results.push({
         api: '基金净值 API (push2his)',
         endpoint: 'push2his.eastmoney.com/api/qt/stock/kline/get',
         success: false,
         duration: Date.now() - start2,
-        error: err instanceof Error ? err.message : 'Unknown error',
+        data: navData,
+        error: navError,
       });
     }
 
-    // Test 3: Fund Holdings API (fundf10)
+    // Test 3: Fund Holdings API (fundf10) - 通过代理
     const start3 = Date.now();
+    let holdingsData = '';
+    let holdingsError = '';
+    let holdingsSuccess = false;
     try {
       const endpoints = config.customApiEndpoints?.fundHoldings ?? DEFAULT_API_ENDPOINTS.fundHoldings;
       const url = `${endpoints}?type=jjcc&code=${code}&topline=10`;
-      const response = await fetch(url, {
-        headers: { 'Accept': 'text/html', 'Referer': 'https://fund.eastmoney.com' },
-      });
+      const proxyUrl = corsProxy.trim() || 'https://api.codetabs.com/v1/proxy?quest=';
+      const fetchUrl = proxyUrl + encodeURIComponent(url);
+      const response = await fetch(fetchUrl, { method: 'GET' });
       const text = await response.text();
-      const hasData = text.includes('jjcc') || text.includes('jjcc =');
+      holdingsData = text;
+      if (!response.ok) {
+        holdingsError = `HTTP ${response.status}`;
+      } else if (text.includes('Object moved') || text.includes('404')) {
+        holdingsError = '页面不存在或已重定向';
+      }
+      holdingsSuccess = response.ok && !holdingsError;
       results.push({
         api: '基金持仓 API (fundf10)',
         endpoint: url,
-        success: response.ok && hasData,
+        success: holdingsSuccess,
         duration: Date.now() - start3,
-        data: text.includes('jjcc') ? `找到持仓数据 (${text.length} bytes)` : '未找到持仓数据',
-        error: !response.ok ? `HTTP ${response.status}` : undefined,
+        data: holdingsData,
+        error: holdingsError,
       });
     } catch (err) {
+      holdingsError = err instanceof Error ? err.message : '请求失败';
       results.push({
         api: '基金持仓 API (fundf10)',
         endpoint: DEFAULT_API_ENDPOINTS.fundHoldings,
         success: false,
         duration: Date.now() - start3,
-        error: err instanceof Error ? err.message : 'Unknown error',
+        data: holdingsData,
+        error: holdingsError,
       });
     }
 
@@ -465,15 +529,23 @@ export function SettingsPage() {
           输入基金代码，测试 EastMoney API 调用并查看原始返回数据。
         </p>
 
-        <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)', flexWrap: 'wrap' }}>
           <input
             type="text"
             className="form-input"
-            placeholder="输入基金代码，如 010041"
+            placeholder="基金代码，如 000001"
             value={fundTestCode}
             onChange={(e) => setFundTestCode(e.target.value)}
-            style={{ maxWidth: 200 }}
+            style={{ maxWidth: 160 }}
             onKeyDown={(e) => e.key === 'Enter' && handleTestFundApi()}
+          />
+          <input
+            type="text"
+            className="form-input"
+            placeholder="CORS代理 URL（可选）"
+            value={corsProxy}
+            onChange={(e) => setCorsProxy(e.target.value)}
+            style={{ maxWidth: 280 }}
           />
           <button
             type="button"
@@ -484,6 +556,9 @@ export function SettingsPage() {
             {isTesting ? '测试中...' : '测试'}
           </button>
         </div>
+        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: 'var(--space-4)' }}>
+          CORS代理用于净值/持仓API（可选，默认使用 JSONP 方式获取基金信息）
+        </p>
 
         {testResults.length > 0 && (
           <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
@@ -511,7 +586,7 @@ export function SettingsPage() {
                 </div>
                 <details>
                   <summary style={{ cursor: 'pointer', fontSize: '0.875rem', marginBottom: 'var(--space-1)' }}>
-                    查看{result.success ? '返回数据' : '错误信息'}
+                    查看原始返回
                   </summary>
                   <pre style={{
                     marginTop: 'var(--space-2)',
@@ -519,12 +594,12 @@ export function SettingsPage() {
                     backgroundColor: '#f8f8f8',
                     borderRadius: 'var(--radius)',
                     fontSize: '0.75rem',
-                    maxHeight: 200,
+                    maxHeight: 300,
                     overflow: 'auto',
                     whiteSpace: 'pre-wrap',
                     wordBreak: 'break-all',
                   }}>
-                    {result.success ? result.data : result.error}
+{result.error ? `【错误】${result.error}\n\n` : ''}{result.data ? `【数据】\n${result.data}` : ''}
                   </pre>
                 </details>
               </div>

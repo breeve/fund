@@ -1,0 +1,138 @@
+# 采集任务配置 schema
+# 描述数据采集的方式、频率、渠道等属性
+# 不与数据组织混在一起，单独管理
+
+name: collection_tasks
+description: 数据采集任务配置
+
+tasks:
+  # 行政区级别采集
+  - name: district_boundary
+    target: district
+    attribute: boundary
+    method: download
+    channel: WebMap shapefile
+    update_interval: once
+    automation: full
+    description: 行政区边界矢量数据下载
+
+  - name: district_stats
+    target: district
+    attributes: [area, population, gdp]
+    method: scrape
+    channel: 深圳统计局年鉴
+    update_interval: 1year
+    automation: manual
+    description: 年度统计数据获取
+
+  - name: school_list
+    target: district
+    attribute: schools
+    method: scrape
+    channel: 教育局官网
+    update_interval: 6month
+    automation: medium
+    description: 学校名单爬取
+
+  # 板块级别采集
+  - name: block_boundary
+    target: block
+    attribute: boundary
+    method: api
+    channel: 高德路径规划API
+    update_interval: once
+    automation: full
+    description: 板块边界通过地铁站覆盖范围计算
+
+  - name: block_price
+    target: block
+    attributes: [avg_price, monthly_deals, on_sale_count]
+    method: api
+    channel: 贝壳/克尔瑞
+    update_interval: 1month
+    automation: low
+    description: 板块价格行情（需商务合作）
+
+  - name: block_commute_time
+    target: block
+    attribute: commute_time_to_downtown
+    method: api
+    channel: 高德路径规划API
+    update_interval: 1week
+    automation: full
+    description: 通勤时间计算
+
+  # 生活圈级别采集
+  - name: life_circle_boundary
+    target: life_circle
+    attribute: boundary
+    method: api
+    channel: 高德路径规划API
+    update_interval: once
+    automation: full
+    description: 等时圈边界计算
+
+  - name: life_circle_poi
+    target: life_circle
+    attributes: [convenience_stores_density, restaurants_density, pharmacy_density]
+    method: api
+    channel: 高德POI API
+    update_interval: 1week
+    automation: full
+    description: POI密度采集
+
+  - name: metro_service_info
+    target: life_circle
+    attributes: [first_train_time, last_train_time, peak_hour_interval]
+    method: scrape
+    channel: 深圳地铁官网
+    update_interval: 1year
+    automation: full
+    description: 地铁服务信息
+
+  # 小区级别采集
+  - name: community_base_info
+    target: community
+    attributes: [name, address, completion_year, total_units, developer, property_company, property_fee]
+    method: scrape
+    channel: 贝壳小区详情页
+    update_interval: 3month
+    automation: full
+    description: 小区基础信息建库
+
+  - name: community_coordinates
+    target: community
+    attribute: coordinates
+    method: api
+    channel: 高德地理编码API
+    update_interval: once
+    automation: full
+    description: 小区坐标获取
+
+  - name: community_nearby_poi
+    target: community
+    attributes: [adverse_factors_500m, adverse_factors_1000m]
+    method: api
+    channel: 高德POI关键词检索
+    update_interval: 1month
+    automation: full
+    description: 不利因素检测
+
+  - name: community_price
+    target: community
+    attributes: [listing_price, on_sale_count, rent_level]
+    method: api
+    channel: 贝壳
+    update_interval: 1week
+    automation: medium
+    description: 小区价格行情
+
+  - name: school_district_mapping
+    target: community
+    attribute: assigned_school
+    method: manual
+    channel: 教育局PDF
+    update_interval: 1year
+    automation: none
+    description: 学区划分（最难结构化，手动标注）
+    note: 购房最关键但最难获取的数据

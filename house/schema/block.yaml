@@ -1,0 +1,151 @@
+# 板块层级数据 schema
+# 对应地理层级: 板块 (block)
+# 市场通用概念，如"科技园""碧海""红山"
+
+name: block
+description: 板块层级数据模型
+
+attributes:
+  # 基础信息
+  - key: name
+    type: string
+    required: true
+    description: 板块名称（市场通用叫法）
+
+  - key: alias
+    type: list
+    item_type: string
+    description: 别名/曾用名
+
+  - key: district
+    type: ref
+    ref: district
+    required: true
+    description: 所属行政区
+
+  # 地理边界
+  - key: boundary
+    type: polygon
+    description: 板块地理边界（市场认知边界，非法定）
+    source: auto
+    channel: 高德路径规划API采样
+    note: 通过地铁站覆盖范围+市场认知综合划定
+
+  - key: center_coordinates
+    type: point
+    description: 板块中心坐标
+    source: auto
+    channel: 高德地理编码API
+
+  # 功能定位
+  - key: function_type
+    type: enum
+    values: [residential, industrial, mixed, commercial, pure_residential]
+    description: 功能定位
+
+  - key: maturity
+    type: enum
+    values: [mature, developing, planning]
+    description: 建成度
+
+  # 价格行情
+  - key: avg_price
+    type: float
+    unit: 元/㎡
+    description: 板块均价
+    source: api
+    channel: 贝壳/克尔瑞
+    update_interval: 1month
+
+  - key: price_change_monthly
+    type: float
+    unit: %
+    description: 环比涨幅
+
+  - key: price_change_yearly
+    type: float
+    unit: %
+    description: 同比涨幅
+
+  - key: monthly_deals
+    type: integer
+    description: 月度成交套数
+    source: api
+    update_interval: 1month
+
+  - key: on_sale_count
+    type: integer
+    description: 在售套数
+    update_interval: 1week
+
+  - key: rent_level
+    type: float
+    unit: 元/㎡·月
+    description: 租金水平
+    update_interval: 1month
+
+  # 小区供给
+  - key: communities
+    type: list
+    item_type: ref
+    ref: community
+    description: 板块内小区列表
+    source: api
+    channel: 贝壳小区列表
+    update_interval: 1month
+
+  - key: community_count
+    type: integer
+    description: 小区数量
+
+  - key: new_community_ratio
+    type: float
+    description: 新盘/次新盘比例
+    source: api
+
+  # 交通配套
+  - key: metro_lines
+    type: list
+    item_type: string
+    description: 经过的地铁线路
+
+  - key: metro_stations
+    type: list
+    item_type: ref
+    ref: metro_station
+    description: 板块内地铁站点
+
+  - key: metro_density
+    type: float
+    unit: 站点/km²
+    description: 地铁站点密度
+
+  - key: commute_time_to_downtown
+    type: map
+    key_type: string
+    value_type: integer
+    unit: 分钟
+    description: 到主要目的地的通勤时间（地铁+步行）
+    source: auto
+    channel: 高德路径规划API
+
+  # 城市规划
+  - key: planning_positioning
+    type: string
+    description: 法定图则中的功能定位
+
+  - key: under_construction
+    type: list
+    description: 在建重大工程
+    source: manual
+    update_interval: 3month
+
+  - key: urban_renewal_projects
+    type: list
+    description: 城市更新项目
+    update_interval: 3month
+
+  - key: future_benefits
+    type: list
+    description: 五年内规划利好
+    source: manual

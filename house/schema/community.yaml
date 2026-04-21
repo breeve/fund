@@ -1,0 +1,321 @@
+# 小区层级数据 schema
+# 对应地理层级: 小区 (community)
+# 购房的最终决策单位，具体楼盘
+
+name: community
+description: 小区层级数据模型
+
+attributes:
+  # 基础档案
+  - key: name
+    type: string
+    required: true
+    description: 小区名称（推广名）
+
+  - key: official_name
+    type: string
+    description: 备案名
+
+  - key: district
+    type: ref
+    ref: district
+    required: true
+
+  - key: block
+    type: ref
+    ref: block
+    required: true
+
+  - key: life_circle
+    type: ref
+    ref: life_circle
+
+  - key: address
+    type: string
+    description: 详细地址
+
+  - key: coordinates
+    type: point
+    required: true
+    source: auto
+    channel: 高德地理编码API
+
+  - key: completion_year
+    type: integer
+    description: 竣工年份
+
+  - key: building_age
+    type: integer
+    description: 楼龄（自动计算）
+
+  - key: total_units
+    type: integer
+    description: 总户数
+
+  - key: developer
+    type: string
+    description: 开发商
+
+  - key: property_company
+    type: string
+    description: 物业公司
+
+  - key: property_fee
+    type: float
+    unit: 元/㎡·月
+    description: 物业费
+
+  - key: positioning
+    type: enum
+    values: [刚需, 改善, 豪宅, 安居房, 经济适用房]
+    description: 小区定位
+
+  # 建筑信息
+  - key: land_area
+    type: float
+    unit: m²
+    description: 占地面积
+
+  - key: building_area
+    type: float
+    unit: m²
+    description: 建筑面积
+
+  - key: plot_ratio
+    type: float
+    description: 容积率
+
+  - key: greening_rate
+    type: float
+    unit: %
+    description: 绿化率
+
+  - key: building_count
+    type: integer
+    description: 总栋数
+
+  - key: floor_count
+    type: integer
+    description: 层数/总层高
+
+  - key: elevator_ratio
+    type: string
+    description: 梯户比（如 2梯4户）
+
+  - key: unit_area_ratio
+    type: float
+    unit: %
+    description: 得房率
+
+  - key: orientation_distribution
+    type: map
+    key_type: string
+    value_type: float
+    description: 朝向分布（如 南向:60%, 北向:40%）
+
+  # 停车位与交通
+  - key: parking_total
+    type: integer
+    description: 总车位数
+
+  - key: parking_ratio
+    type: string
+    description: 车户比（如 1:1.5）
+
+  - key: parking_above
+    type: integer
+    description: 地上车位数
+
+  - key: parking_below
+    type: integer
+    description: 地下车位数
+
+  - key: parking_fee
+    type: object
+    properties:
+      - key: monthly
+        type: float
+        unit: 元
+      - key: hourly
+        type: float
+        unit: 元/小时
+    description: 停车费
+
+  - key: nearest_metro
+    type: object
+    properties:
+      - key: name
+        type: string
+      - key: distance
+        type: integer
+        unit: 米
+      - key: lines
+        type: list
+        item_type: string
+    description: 最近地铁站
+
+  - key: bus_lines_count
+    type: integer
+    description: 公交线路数
+
+  # 户型产品
+  - key: unit_types
+    type: list
+    item_type: enum
+    values: [一室, 两室, 三室, 四室, 五室, 复式, 别墅]
+    description: 户型种类
+
+  - key: main_unit_type
+    type: string
+    description: 主力户型
+
+  - key: area_range
+    type: object
+    properties:
+      - key: min
+        type: float
+        unit: m²
+      - key: max
+        type: float
+        unit: m²
+      - key: main
+        type: float
+        unit: m²
+    description: 面积段
+
+  - key: decoration_status
+    type: enum
+    values: [毛坯, 精装, 豪装]
+    description: 装修状况
+
+  # 价格与行情
+  - key: listing_price
+    type: float
+    unit: 元/㎡
+    description: 当前挂牌价
+    update_interval: 1week
+
+  - key: recent_deal_price
+    type: float
+    unit: 元/㎡
+    description: 近期成交价
+    update_interval: 1month
+
+  - key: price_trend
+    type: list
+    item_type: object
+    properties:
+      - key: date
+        type: string
+      - key: price
+        type: float
+    description: 历史价格走势
+
+  - key: avg_days_on_market
+    type: integer
+    description: 平均成交周期（天）
+
+  - key: bargaining_space
+    type: float
+    unit: %
+    description: 议价空间
+
+  - key: on_sale_count
+    type: integer
+    description: 在售套数
+    update_interval: 1week
+
+  - key: on_rent_count
+    type: integer
+    description: 在租套数
+    update_interval: 1week
+
+  - key: rent_level
+    type: map
+    key_type: string
+    value_type: float
+    unit: 元/㎡·月
+    description: 分户型租金
+
+  # 教育配套
+  - key: assigned_school
+    type: object
+    properties:
+      - key: kindergarten
+        type: string
+      - key: primary
+        type: string
+      - key: middle
+        type: string
+    description: 对口学校（手动标注，最难结构化的数据）
+
+  # 环境与安全
+  - key: garden_landscape
+    type: string
+    description: 内部园林景观
+
+  - key: noise_sources
+    type: list
+    item_type: string
+    description: 噪音源
+
+  - key: property_management_level
+    type: enum
+    values: [好, 一般, 差]
+    description: 物业管理水平
+
+  - key: security_system
+    type: string
+    description: 安防系统
+
+  - key: pedestrian_vehicle_separation
+    type: boolean
+    description: 是否人车分流
+
+  - key: elevator_brand
+    type: string
+    description: 电梯品牌
+
+  - key: flooding_risk
+    type: boolean
+    description: 内涝风险
+
+  # 不利因素
+  - key: adverse_factors_500m
+    type: list
+    item_type: object
+    properties:
+      - key: type
+        type: string
+      - key: name
+        type: string
+      - key: distance
+        type: integer
+        unit: 米
+    description: 500米内不利因素
+    source: auto
+    channel: 高德POI关键词检索
+
+  - key: adverse_factors_1000m
+    type: list
+    item_type: object
+    description: 1000米内不利因素
+
+  # 口碑与舆情
+  - key: rating
+    type: float
+    description: 贝壳/链家评分
+    source: api
+
+  - key: litigation_history
+    type: list
+    item_type: string
+    description: 开发商历史维权记录
+    source: auto
+    channel: 天眼查
+
+  - key: negative_news
+    type: list
+    item_type: string
+    description: 负面媒体报道
+    source: manual

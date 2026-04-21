@@ -1,0 +1,232 @@
+# 生活圈层级数据 schema
+# 对应地理层级: 生活圈 (life_circle)
+# 以地铁站为中心，500-800米步行可达范围
+
+name: life_circle
+description: 生活圈层级数据模型
+
+attributes:
+  # 锚点与边界
+  - key: anchor_metro_station
+    type: ref
+    ref: metro_station
+    required: true
+    description: 锚定地铁站（生活圈内最近的地铁站）
+
+  - key: boundary
+    type: polygon
+    description: 生活圈边界（等时圈 polygon）
+    source: auto
+    channel: 高德路径规划API多方向采样
+    note: 以地铁站为中心，步行10/15/20分钟可达范围
+
+  - key: coverage_radius
+    type: integer
+    unit: 米
+    description: 步行覆盖半径（500-800m）
+    source: auto
+    channel: 高德距离测量API
+
+  - key: block
+    type: ref
+    ref: block
+    description: 所属板块
+
+  - key: district
+    type: ref
+    ref: district
+    description: 所属行政区
+
+  # 地铁服务能力
+  - key: metro_lines_count
+    type: integer
+    description: 经过的地铁线路数量
+
+  - key: peak_hour_interval
+    type: integer
+    unit: 分钟
+    description: 早高峰发车间隔
+
+  - key: first_train_time
+    type: string
+    description: 首班车时间
+
+  - key: last_train_time
+    type: string
+    description: 末班车时间
+
+  - key: daily_passenger_volume
+    type: integer
+    description: 日均客流量
+    source: auto
+    channel: 深圳地铁社会责任报告
+
+  - key: station_facilities
+    type: list
+    item_type: string
+    description: 站内设施（洗手间/无障碍电梯/换乘通道）
+
+  # 日常通勤指标
+  - key: commute_to_work
+    type: map
+    key_type: string
+    value_type: object
+    description: 到主要目的地的通勤耗时
+    properties:
+      - key: destination
+        type: string
+      - key: duration
+        type: integer
+        unit: 分钟
+      - key: transfers
+        type: integer
+        description: 换乘次数
+    source: auto
+    channel: 高德路径规划API
+
+  # 教育配套
+  - key: kindergartens
+    type: list
+    item_type: object
+    properties:
+      - key: name
+        type: string
+      - key: distance
+        type: integer
+        unit: 米
+    description: 幼儿园列表及步行距离
+
+  - key: primary_schools
+    type: list
+    item_type: object
+    properties:
+      - key: name
+        type: string
+      - key: distance
+        type: integer
+        unit: 米
+    description: 小学列表及步行距离
+
+  - key: middle_schools
+    type: list
+    item_type: object
+    properties:
+      - key: name
+        type: string
+      - key: distance
+        type: integer
+        unit: 米
+    description: 中学列表及步行距离
+
+  # 商业与生活服务
+  - key: shopping_malls
+    type: list
+    item_type: object
+    properties:
+      - key: name
+        type: string
+      - key: area
+        type: float
+        unit: 万㎡
+      - key: distance
+        type: integer
+        unit: 米
+    description: 大型商业体
+
+  - key: convenience_stores_density
+    type: float
+    description: 便利店密度（个/km²）
+    source: auto
+    channel: 高德POI API
+
+  - key: restaurants_density
+    type: float
+    description: 餐饮门店密度
+    source: auto
+    channel: 高德POI API
+
+  # 医疗健康
+  - key: community_health_center
+    type: object
+    properties:
+      - key: name
+        type: string
+      - key: distance
+        type: integer
+        unit: 米
+    description: 最近社康中心
+
+  - key: pharmacy_density
+    type: float
+    description: 药店密度
+
+  - key: top_hospital_accessible
+    type: object
+    properties:
+      - key: name
+        type: string
+      - key: duration
+        type: integer
+        unit: 分钟
+    description: 最近三甲医院公共交通耗时
+
+  # 环境与安全
+  - key: park_coverage
+    type: float
+    unit: %
+    description: 步行可达公园覆盖率
+
+  - key: noise_sources
+    type: list
+    item_type: string
+    description: 噪音源（主干道/高架/铁路）
+
+  - key: flooding_risk
+    type: boolean
+    description: 内涝风险
+    source: manual
+    channel: 水务局公示
+
+  - key: adverse_factors
+    type: list
+    item_type: string
+    description: 不利因素（垃圾站/变电站/墓地等）
+    source: auto
+    channel: 高德POI关键词检索
+
+  # 小区楼栋信息
+  - key: communities
+    type: list
+    item_type: ref
+    ref: community
+    description: 生活圈内小区列表
+
+  - key: building_age_distribution
+    type: map
+    key_type: string
+    value_type: float
+    description: 楼龄分布（次新盘/老小区比例）
+    source: api
+
+  - key: quality_property_ratio
+    type: float
+    unit: %
+    description: 品牌物业占比
+    source: api
+
+  # 租金与房价
+  - key: avg_rent
+    type: float
+    unit: 元/㎡·月
+    description: 平均租金
+    update_interval: 1month
+
+  - key: on_sale_inventory
+    type: integer
+    description: 在售库存
+    update_interval: 1week
+
+  - key: monthly_deals
+    type: integer
+    description: 近一年成交量
+    update_interval: 1month

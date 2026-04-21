@@ -1,0 +1,119 @@
+# 行政区层级数据 schema
+# 对应地理层级: 行政区 (district)
+
+name: district
+description: 行政区层级数据模型
+
+attributes:
+  # 基础信息
+  - key: district_code
+    type: string
+    required: true
+    description: 行政区划代码，如 440305（南山区）
+    source: manual  # 政府标准代码，人工维护
+
+  - key: name
+    type: string
+    required: true
+    description: 行政区名称
+    source: manual
+
+  - key: area
+    type: float
+    unit: km²
+    description: 面积
+    source: auto
+    channel: 深圳统计局年鉴
+
+  - key: population
+    type: integer
+    description: 常住人口
+    source: auto
+    channel: 深圳统计局年鉴
+
+  - key: gdp
+    type: float
+    unit: 亿元
+    description: GDP
+    source: auto
+    channel: 深圳统计局年鉴
+
+  # 地理边界
+  - key: boundary
+    type: polygon
+    description: 行政区边界坐标
+    source: auto
+    channel: WebMap/高德行政边界API
+    update_interval: once  # 一次性建库
+
+  # 教育资源
+  - key: schools
+    type: list
+    item_type: ref
+    ref: school
+    description: 学校清单
+    source: auto
+    channel: 教育局官网爬取
+    update_interval: 6month
+
+  - key: school_district_mapping
+    type: map
+    key_type: ref
+    value_type: ref
+    ref: community
+    description: 学区划分映射（小区->学校），最难结构化的数据
+    source: manual
+    update_interval: 1year
+
+  # 交通配套
+  - key: metro_lines
+    type: list
+    item_type: string
+    description: 地铁线路
+    source: auto
+    channel: 高德POI API
+
+  - key: metro_stations
+    type: list
+    item_type: ref
+    ref: metro_station
+    description: 地铁站点
+    source: auto
+    channel: 高德POI API
+
+  # 房价行情
+  - key: avg_price
+    type: float
+    unit: 元/㎡
+    description: 二手房均价
+    source: api
+    channel: 贝壳/克尔瑞（需商务合作）
+    update_interval: 1month
+
+  - key: monthly_deals
+    type: integer
+    description: 月度成交套数
+    source: api
+    channel: 贝壳/克尔瑞
+    update_interval: 1month
+
+  - key: on_sale_count
+    type: integer
+    description: 在售套数
+    source: api
+    channel: 贝壳
+    update_interval: 1week
+
+  # 规划信息
+  - key: planning_docs
+    type: list
+    description: 国土空间规划文档
+    source: manual
+    channel: 规划局官网
+
+  - key: urban_renewal_projects
+    type: list
+    description: 城市更新（旧改）项目列表
+    source: auto
+    channel: 住建局公示
+    update_interval: 3month

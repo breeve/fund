@@ -1,0 +1,14 @@
+.dart_tool/
+.packages
+.pub/
+build/
+android/
+ios/
+linux/
+macos/
+windows/
+web/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+version.json

@@ -205,6 +205,13 @@ export interface AppConfig {
   theme: 'light' | 'dark' | 'auto';
   locale: string;
   dataDir: string;
+  // Custom API endpoints (for advanced users)
+  customApiEndpoints?: {
+    fundSearch?: string;    // 基金搜索 API
+    fundInfo?: string;     // 基金信息 API
+    fundNav?: string;      // 基金净值 API
+    fundHoldings?: string; // 基金持仓 API
+  };
 }
 
 // Filter types

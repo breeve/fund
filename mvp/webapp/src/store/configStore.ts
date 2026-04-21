@@ -10,6 +10,7 @@ interface ConfigState {
   setMarketDataProvider: (provider: string) => void;
   setLLMProvider: (provider: string) => void;
   setLLMModel: (model: string) => void;
+  setCustomApiEndpoints: (endpoints: AppConfig['customApiEndpoints']) => void;
 
   // Preferences actions
   setTheme: (theme: UserPreferences['theme']) => void;
@@ -20,7 +21,7 @@ interface ConfigState {
 }
 
 const defaultConfig: AppConfig = {
-  marketDataProvider: 'eastmoney', // 东方财富作为默认免费数据源
+  marketDataProvider: 'eastmoney',
   llmProvider: 'openai',
   llmModel: 'gpt-4o-mini',
   theme: 'light',
@@ -58,6 +59,12 @@ export const useConfigStore = create<ConfigState>()(
       setLLMModel: (model) => {
         set((state) => ({
           config: { ...state.config, llmModel: model },
+        }));
+      },
+
+      setCustomApiEndpoints: (endpoints) => {
+        set((state) => ({
+          config: { ...state.config, customApiEndpoints: endpoints },
         }));
       },
 
@@ -103,34 +110,24 @@ export const MARKET_DATA_PROVIDERS = [
   {
     id: 'eastmoney',
     name: '东方财富',
-    description: '国内知名财经网站，部分免费接口',
+    description: '国内知名财经网站，免费接口',
     requiresKey: false,
-  },
-  {
-    id: 'tushare',
-    name: 'Tushare Pro',
-    description: '专业金融数据平台，需付费订阅',
-    requiresKey: true,
-  },
-  {
-    id: 'akshare',
-    name: 'AKShare',
-    description: '免费开源财经数据包',
-    requiresKey: false,
-  },
-  {
-    id: 'yahoo',
-    name: 'Yahoo Finance',
-    description: '美股/港股数据，免费',
-    requiresKey: false,
-  },
-  {
-    id: 'custom',
-    name: '自定义',
-    description: '配置自定义 API 地址',
-    requiresKey: true,
+    endpoints: {
+      fundSearch: 'https://fund.eastmoney.com/ajax/ranking/',
+      fundInfo: 'https://fundgz.1234567.com.cn/js/{code}.js',
+      fundNav: 'https://push2his.eastmoney.com/api/qt/stock/kline/get',
+      fundHoldings: 'https://fundf10.eastmoney.com/FundArchives/Net.aspx',
+    },
   },
 ];
+
+// Default API endpoints (EastMoney)
+export const DEFAULT_API_ENDPOINTS = {
+  fundSearch: 'https://fund.eastmoney.com/ajax/ranking/',
+  fundInfo: 'https://fundgz.1234567.com.cn/js/{code}.js',
+  fundNav: 'https://push2his.eastmoney.com/api/qt/stock/kline/get',
+  fundHoldings: 'https://fundf10.eastmoney.com/FundArchives/Net.aspx',
+};
 
 // LLM providers configuration
 export const LLM_PROVIDERS = [

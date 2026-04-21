@@ -12,12 +12,6 @@ export function FundPage() {
     await searchFunds(keyword.trim());
   };
 
-  const popularFunds = [
-    { code: '000961', name: '天弘沪深300ETF联接A', type: '指数型' },
-    { code: '110022', name: '易方达消费行业股票', type: '股票型' },
-    { code: '161725', name: '招商中证白酒指数(LOF)', type: '指数型' },
-  ];
-
   return (
     <div className="animate-fade-in">
       <div className="page-header">
@@ -94,61 +88,25 @@ export function FundPage() {
           </div>
         </div>
       ) : (
-        <>
-          {/* Popular Funds */}
-          <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
-            <div className="card-header">
-              <h2 className="card-title">热门基金</h2>
-            </div>
-            <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
-              {popularFunds.map((fund) => (
-                <Link
-                  key={fund.code}
-                  to={`/fund/${fund.code}`}
-                  className="card"
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    textDecoration: 'none',
-                    padding: 'var(--space-4)',
-                    border: '1px solid var(--color-border)',
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: 600, marginBottom: 'var(--space-1)' }}>
-                      {fund.name}
-                    </div>
-                    <div style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
-                      {fund.code} · {fund.type}
-                    </div>
-                  </div>
-                  <div style={{ color: 'var(--color-primary)' }}>查看诊断 →</div>
-                </Link>
-              ))}
+        /* Tips */
+        <div className="card" style={{ backgroundColor: 'var(--color-bg)' }}>
+          <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-start' }}>
+            <div style={{ fontSize: '2rem' }}>💡</div>
+            <div>
+              <div style={{ fontWeight: 600, marginBottom: 'var(--space-2)' }}>使用提示</div>
+              <ul style={{
+                fontSize: '0.875rem',
+                color: 'var(--color-text-secondary)',
+                paddingLeft: 'var(--space-4)',
+                margin: 0,
+              }}>
+                <li>输入基金代码（如 000961）或基金名称进行搜索</li>
+                <li>点击基金卡片可查看完整的诊断分析报告</li>
+                <li>诊断包括：持仓穿透、风险评级、行业分布等</li>
+              </ul>
             </div>
           </div>
-
-          {/* Tips */}
-          <div className="card" style={{ backgroundColor: 'var(--color-bg)' }}>
-            <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-start' }}>
-              <div style={{ fontSize: '2rem' }}>💡</div>
-              <div>
-                <div style={{ fontWeight: 600, marginBottom: 'var(--space-2)' }}>使用提示</div>
-                <ul style={{
-                  fontSize: '0.875rem',
-                  color: 'var(--color-text-secondary)',
-                  paddingLeft: 'var(--space-4)',
-                  margin: 0,
-                }}>
-                  <li>输入基金代码（如 000961）或基金名称进行搜索</li>
-                  <li>点击基金卡片可查看完整的诊断分析报告</li>
-                  <li>诊断包括：持仓穿透、风险评级、行业分布等</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </>
+        </div>
       )}
     </div>
   );

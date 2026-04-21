@@ -1,16 +1,34 @@
 import { useState, useRef } from 'react';
-import { useConfigStore, MARKET_DATA_PROVIDERS, LLM_PROVIDERS } from '@/store';
+import { useConfigStore, MARKET_DATA_PROVIDERS, LLM_PROVIDERS, DEFAULT_API_ENDPOINTS } from '@/store';
 import { saveAs } from 'file-saver';
 import { useAssetStore } from '@/store';
 import { exportAssetsToExcel, importAssetsFromExcel, EXCEL_CONFIG_VERSION } from '@/services/assetExcel';
 import type { Asset } from '@/types';
+import type { AppConfig } from '@/types';
 
 export function SettingsPage() {
-  const { config, preferences, setTheme, setLocale, setDefaultView, setShowTips } = useConfigStore();
+  const { config, preferences, setTheme, setLocale, setDefaultView, setShowTips, setMarketDataProvider, setLLMProvider, setLLMModel, setCustomApiEndpoints } = useConfigStore();
   const { assets, addAsset } = useAssetStore();
   const [exportStatus, setExportStatus] = useState<string>('');
   const [importStatus, setImportStatus] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Custom API endpoints state
+  const [showAdvancedConfig, setShowAdvancedConfig] = useState(false);
+  const [customEndpoints, setCustomEndpoints] = useState<NonNullable<AppConfig['customApiEndpoints']>>({
+    fundInfo: config.customApiEndpoints?.fundInfo ?? DEFAULT_API_ENDPOINTS.fundInfo,
+    fundNav: config.customApiEndpoints?.fundNav ?? DEFAULT_API_ENDPOINTS.fundNav,
+    fundHoldings: config.customApiEndpoints?.fundHoldings ?? DEFAULT_API_ENDPOINTS.fundHoldings,
+  });
+
+  const handleSaveCustomEndpoints = () => {
+    setCustomApiEndpoints(customEndpoints);
+    setShowAdvancedConfig(false);
+  };
+
+  const handleResetEndpoints = () => {
+    setCustomEndpoints(DEFAULT_API_ENDPOINTS);
+  };
 
   const handleExport = async (format: 'json' | 'csv' | 'excel') => {
     try {
@@ -231,7 +249,7 @@ export function SettingsPage() {
         </div>
       </div>
 
-      {/* API Configuration */}
+      {/* Fund Data Source Configuration */}
       <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
         <div className="card-header">
           <h2 className="card-title">数据源配置</h2>
@@ -242,14 +260,11 @@ export function SettingsPage() {
           <select
             className="form-input form-select"
             value={config.marketDataProvider}
-            onChange={(e) => {
-              // In a real app, this would update the config
-              console.log('Provider changed to:', e.target.value);
-            }}
+            onChange={(e) => setMarketDataProvider(e.target.value)}
           >
             {MARKET_DATA_PROVIDERS.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name} {p.requiresKey ? '(需配置)' : ''}
+                {p.name}
               </option>
             ))}
           </select>
@@ -258,14 +273,81 @@ export function SettingsPage() {
           </div>
         </div>
 
+        {/* Custom API Endpoints */}
+        <div style={{ marginTop: 'var(--space-4)' }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => setShowAdvancedConfig(!showAdvancedConfig)}
+            style={{ fontSize: '0.875rem' }}
+          >
+            {showAdvancedConfig ? '收起' : '显示'}自定义 API 端点
+          </button>
+
+          {showAdvancedConfig && (
+            <div style={{ marginTop: 'var(--space-3)' }}>
+              <div className="form-hint" style={{ marginBottom: 'var(--space-3)' }}>
+                如需使用代理或自定义 API，请填写以下端点地址。
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">基金信息 API</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder={DEFAULT_API_ENDPOINTS.fundInfo}
+                  value={customEndpoints.fundInfo || ''}
+                  onChange={(e) => setCustomEndpoints({ ...customEndpoints, fundInfo: e.target.value || undefined })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">基金净值 API</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder={DEFAULT_API_ENDPOINTS.fundNav}
+                  value={customEndpoints.fundNav || ''}
+                  onChange={(e) => setCustomEndpoints({ ...customEndpoints, fundNav: e.target.value || undefined })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">基金持仓 API</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder={DEFAULT_API_ENDPOINTS.fundHoldings}
+                  value={customEndpoints.fundHoldings || ''}
+                  onChange={(e) => setCustomEndpoints({ ...customEndpoints, fundHoldings: e.target.value || undefined })}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
+                <button type="button" className="btn btn-primary" onClick={handleSaveCustomEndpoints}>
+                  保存
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={handleResetEndpoints}>
+                  重置为默认
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* LLM Configuration */}
+      <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
+        <div className="card-header">
+          <h2 className="card-title">LLM 配置</h2>
+        </div>
+
         <div className="form-group">
           <label className="form-label">LLM 提供商</label>
           <select
             className="form-input form-select"
             value={config.llmProvider}
-            onChange={(e) => {
-              console.log('LLM changed to:', e.target.value);
-            }}
+            onChange={(e) => setLLMProvider(e.target.value)}
           >
             {LLM_PROVIDERS.map((p) => (
               <option key={p.id} value={p.id}>
@@ -280,10 +362,7 @@ export function SettingsPage() {
           <select
             className="form-input form-select"
             value={config.llmModel}
-            onChange={(e) => {
-              // Would call setLLMModel in real app
-              console.log('Model changed to:', e.target.value);
-            }}
+            onChange={(e) => setLLMModel(e.target.value)}
           >
             {LLM_PROVIDERS.find((p) => p.id === config.llmProvider)?.models.map((m) => (
               <option key={m} value={m}>{m}</option>
@@ -291,15 +370,8 @@ export function SettingsPage() {
           </select>
         </div>
 
-        <div className="card" style={{ backgroundColor: 'var(--color-bg)', marginTop: 'var(--space-4)' }}>
-          <div style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
-            <strong>配置说明：</strong>
-            <ul style={{ paddingLeft: 'var(--space-4)', margin: 'var(--space-2) 0 0' }}>
-              <li>行情数据源：用于获取基金净值和持仓信息</li>
-              <li>LLM 提供商：用于图片解析和智能分析功能</li>
-              <li>API Key 可在环境变量中配置，或联系管理员</li>
-            </ul>
-          </div>
+        <div className="form-hint">
+          用于图片解析和智能分析功能。API Key 可在环境变量中配置。
         </div>
       </div>
 

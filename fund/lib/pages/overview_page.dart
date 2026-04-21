@@ -45,8 +45,6 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
             _buildChartsRow(breakdown),
             const SizedBox(height: 24),
             _buildCategoryTable(assetState),
-            const SizedBox(height: 24),
-            _buildQuickActions(),
           ],
         ),
       ),
@@ -84,6 +82,14 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
   }
 
   Widget _buildChartsRow(Map<AssetCategory, double> breakdown) {
+    final hasBreakdownData = breakdown.values.any((v) => v > 0);
+    final trendData = _getMockTrendData();
+    final hasTrendData = trendData.isNotEmpty;
+
+    if (!hasBreakdownData && !hasTrendData) {
+      return const SizedBox();
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth > 600) {
@@ -91,60 +97,124 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
             height: 250,
             child: Row(
               children: [
-                Expanded(
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: CategoryPieChart(
-                        data: breakdown,
-                        title: '资产构成',
+                if (hasBreakdownData)
+                  Expanded(
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '资产构成',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Expanded(
+                              child: CategoryPieChart(
+                                data: breakdown,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: NetWorthTrendChart(
-                        data: _getMockTrendData(),
-                        dateRange: '3M',
+                if (hasBreakdownData && hasTrendData)
+                  const SizedBox(width: 16),
+                if (hasTrendData)
+                  Expanded(
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '净资产趋势',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Expanded(
+                              child: NetWorthTrendChart(
+                                data: trendData,
+                                dateRange: '3M',
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
           );
         }
         return Column(
           children: [
-            SizedBox(
-              height: 250,
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: CategoryPieChart(
-                    data: breakdown,
-                    title: '资产构成',
+            if (hasBreakdownData)
+              SizedBox(
+                height: 250,
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '资产构成',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: CategoryPieChart(
+                            data: breakdown,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 250,
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: NetWorthTrendChart(
-                    data: _getMockTrendData(),
-                    dateRange: '3M',
+            if (hasBreakdownData && hasTrendData)
+              const SizedBox(height: 16),
+            if (hasTrendData)
+              SizedBox(
+                height: 250,
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '净资产趋势',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: NetWorthTrendChart(
+                            data: trendData,
+                            dateRange: '3M',
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
           ],
         );
       },
@@ -222,68 +292,6 @@ class _OverviewPageState extends ConsumerState<OverviewPage> {
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickActions() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final crossAxisCount = constraints.maxWidth > 400 ? 3 : 2;
-        return GridView.count(
-          crossAxisCount: crossAxisCount,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 1.2,
-          children: [
-            _buildActionCard(
-              icon: '➕',
-              label: '添加资产',
-              onTap: () => context.go('/assets/new'),
-            ),
-            _buildActionCard(
-              icon: '🔍',
-              label: '基金诊断',
-              onTap: () => context.go('/fund'),
-            ),
-            _buildActionCard(
-              icon: '⚙️',
-              label: '设置',
-              onTap: () => context.go('/settings'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildActionCard({
-    required String icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(icon, style: const TextStyle(fontSize: 28)),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

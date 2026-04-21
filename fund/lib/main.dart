@@ -11,6 +11,7 @@ import 'pages/fund_diagnosis_page.dart';
 import 'pages/settings_page.dart';
 import 'stores/asset_store.dart';
 import 'services/storage.dart';
+import 'widgets/app_shell.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,9 +21,7 @@ void main() async {
 
   runApp(
     ProviderScope(
-      overrides: [
-        storageServiceProvider.overrideWithValue(storage),
-      ],
+      overrides: [storageServiceProvider.overrideWithValue(storage)],
       child: const FundApp(),
     ),
   );
@@ -31,46 +30,45 @@ void main() async {
 final router = GoRouter(
   initialLocation: '/',
   routes: [
-    GoRoute(
-      path: '/',
-      builder: (context, state) => const OverviewPage(),
-    ),
-    GoRoute(
-      path: '/assets',
-      builder: (context, state) => const AssetsPage(),
-    ),
-    GoRoute(
-      path: '/assets/new',
-      builder: (context, state) => const AssetFormPage(),
-    ),
-    GoRoute(
-      path: '/assets/:id',
-      builder: (context, state) {
-        final id = state.pathParameters['id']!;
-        return AssetDetailPage(assetId: id);
-      },
-    ),
-    GoRoute(
-      path: '/assets/:id/edit',
-      builder: (context, state) {
-        final id = state.pathParameters['id']!;
-        return AssetFormPage(assetId: id);
-      },
-    ),
-    GoRoute(
-      path: '/fund',
-      builder: (context, state) => const FundPage(),
-    ),
-    GoRoute(
-      path: '/fund/:code',
-      builder: (context, state) {
-        final code = state.pathParameters['code']!;
-        return FundDiagnosisPage(fundCode: code);
-      },
-    ),
-    GoRoute(
-      path: '/settings',
-      builder: (context, state) => const SettingsPage(),
+    ShellRoute(
+      builder: (context, state, child) => AppShell(child: child),
+      routes: [
+        GoRoute(path: '/', builder: (context, state) => const OverviewPage()),
+        GoRoute(
+          path: '/assets',
+          builder: (context, state) => const AssetsPage(),
+        ),
+        GoRoute(
+          path: '/assets/new',
+          builder: (context, state) => const AssetFormPage(),
+        ),
+        GoRoute(
+          path: '/assets/:id',
+          builder: (context, state) {
+            final id = state.pathParameters['id']!;
+            return AssetDetailPage(assetId: id);
+          },
+        ),
+        GoRoute(
+          path: '/assets/:id/edit',
+          builder: (context, state) {
+            final id = state.pathParameters['id']!;
+            return AssetFormPage(assetId: id);
+          },
+        ),
+        GoRoute(path: '/fund', builder: (context, state) => const FundPage()),
+        GoRoute(
+          path: '/fund/:code',
+          builder: (context, state) {
+            final code = state.pathParameters['code']!;
+            return FundDiagnosisPage(fundCode: code);
+          },
+        ),
+        GoRoute(
+          path: '/settings',
+          builder: (context, state) => const SettingsPage(),
+        ),
+      ],
     ),
   ],
 );

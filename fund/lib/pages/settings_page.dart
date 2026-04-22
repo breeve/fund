@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../stores/asset_store.dart';
 import '../widgets/app_layout.dart';
 import '../theme/app_theme.dart';
+import '../models/datasource_config.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -12,6 +13,24 @@ class SettingsPage extends ConsumerStatefulWidget {
 }
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
+  final DataSourceConfigStore _configStore = DataSourceConfigStore();
+  String _currentDataSource = 'eastmoney';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadConfig();
+  }
+
+  Future<void> _loadConfig() async {
+    await _configStore.init();
+    if (mounted) {
+      setState(() {
+        _currentDataSource = _configStore.currentDataSourceId;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppLayout(
@@ -21,12 +40,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           _buildSection(
             '通用设置',
             [
-              _buildSettingItem(
-                icon: Icons.palette_outlined,
-                title: '主题',
-                subtitle: '跟随系统',
-                onTap: () {},
-              ),
               _buildSettingItem(
                 icon: Icons.language,
                 title: '语言',
@@ -73,13 +86,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               _buildSettingItem(
                 icon: Icons.api,
                 title: '数据提供商',
-                subtitle: '东方财富 (EastMoney)',
-                onTap: () {},
+                subtitle: _getDataSourceName(_currentDataSource),
+                onTap: () => _showDataSourceDialog(),
               ),
               _buildSettingItem(
                 icon: Icons.link,
                 title: 'API 端点',
-                subtitle: '使用默认端点',
+                subtitle: 'http://localhost:8081',
                 onTap: () {},
               ),
             ],
@@ -257,6 +270,79 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             },
             style: TextButton.styleFrom(foregroundColor: AppTheme.error),
             child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getDataSourceName(String id) {
+    switch (id) {
+      case 'eastmoney':
+        return '东方财富 (EastMoney)';
+      case 'eastmoney_f10':
+        return '东方财富 F10 (EastMoney F10)';
+      default:
+        return '东方财富 (EastMoney)';
+    }
+  }
+
+  void _showDataSourceDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('选择数据源'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: availableDataSources.map((ds) {
+            return ListTile(
+              leading: Radio<String>(
+                value: ds.id,
+                groupValue: _currentDataSource,
+                onChanged: (value) async {
+                  if (value != null) {
+                    await _configStore.setDataSource(value);
+                    if (mounted) {
+                      setState(() {
+                        _currentDataSource = value;
+                      });
+                    }
+                    if (dialogCtx.mounted) {
+                      Navigator.of(dialogCtx).pop();
+                    }
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('已切换到 ${_getDataSourceName(value)}')),
+                      );
+                    }
+                  }
+                },
+              ),
+              title: Text(ds.name),
+              subtitle: Text(ds.description),
+              onTap: () async {
+                await _configStore.setDataSource(ds.id);
+                if (mounted) {
+                  setState(() {
+                    _currentDataSource = ds.id;
+                  });
+                }
+                if (dialogCtx.mounted) {
+                  Navigator.of(dialogCtx).pop();
+                }
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('已切换到 ${_getDataSourceName(ds.id)}')),
+                  );
+                }
+              },
+            );
+          }).toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(),
+            child: const Text('取消'),
           ),
         ],
       ),

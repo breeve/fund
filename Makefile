@@ -9,6 +9,8 @@
 #   make fund-analyze       - Analyze
 #   make fund-test          - Test
 #   make fund-serve         - Serve existing build
+#   make fund-server        - Start backend server on 8081
+#   make fund-server-dev    - Start server + build + serve web
 
 FUND_MAKE := $(MAKE) --directory=fund
 
@@ -31,7 +33,7 @@ help: ## Show this help message
 	@$(FUND_MAKE) help 2>/dev/null | awk '{print "  fund-" $$0}' | sed '1,3d'
 
 # ── Flutter Fund targets ───────────────────────────────────────────────────────
-.PHONY: fund-web fund-analyze fund-clean fund-deps fund-test fund-serve fund-serve-build
+.PHONY: fund-web fund-analyze fund-clean fund-deps fund-test fund-serve fund-serve-build fund-server fund-server-dev
 
 fund-web:          ## Build Flutter web app
 	$(FUND_MAKE) web
@@ -53,3 +55,9 @@ fund-serve:        ## Serve existing build/web on http://localhost:8080 (no rebu
 
 fund-serve-build:  ## Build then serve on http://localhost:8080
 	$(FUND_MAKE) serve-build
+
+fund-server:       ## Start backend server on http://localhost:8081
+	$(FUND_MAKE) server
+
+fund-server-dev:   ## Start server + build + serve (full dev experience)
+	$(FUND_MAKE) server-dev

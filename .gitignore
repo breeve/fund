@@ -47,3 +47,4 @@ yarn.lock
 # Docs build
 docs/.vite/
 docs/dist/
+.claude/

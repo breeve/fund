@@ -13,3 +13,5 @@ type District struct {
 	MonthlyDeals int     `json:"monthly_deals"`                            // 月度成交套数
 	OnSaleCount  int     `json:"on_sale_count"`                           // 在售套数
 }
+
+func (District) TableName() string { return "districts" }

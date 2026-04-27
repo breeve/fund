@@ -18,6 +18,16 @@ class _BlocksPageState extends ConsumerState<BlocksPage> {
   void initState() {
     super.initState();
     Future.microtask(() {
+      final params = GoRouterState.of(context).uri.queryParameters;
+      final districtIdStr = params['district'];
+      if (districtIdStr != null) {
+        final districtId = int.tryParse(districtIdStr);
+        if (districtId != null) {
+          ref.read(blockStoreProvider.notifier).selectDistrict(districtId);
+          ref.read(blockStoreProvider.notifier).loadBlocks(districtId: districtId);
+          return;
+        }
+      }
       ref.read(blockStoreProvider.notifier).loadBlocks();
     });
   }

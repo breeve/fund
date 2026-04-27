@@ -1,8 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"house/internal/config"
 	"house/internal/handler"
@@ -63,8 +69,53 @@ func main() {
 	r := gin.Default()
 	houseHandler.RegisterRoutes(r)
 
-	log.Printf("Server starting on port %s", cfg.Server.Port)
-	if err := r.Run(":" + cfg.Server.Port); err != nil {
-		log.Fatalf("failed to start server: %v", err)
+	// 健康检查端点
+	r.GET("/health", healthCheck(db))
+
+	srv := &http.Server{
+		Addr:    ":" + cfg.Server.Port,
+		Handler: r,
+	}
+
+	go func() {
+		log.Printf("Server starting on port %s", cfg.Server.Port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("failed to start server: %v", err)
+		}
+	}()
+
+	// 等待中断信号优雅关闭
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("Shutting down server...")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
+	}
+
+	// 关闭数据库连接
+	sqlDB, _ := db.DB()
+	if sqlDB != nil {
+		sqlDB.Close()
+	}
+	log.Println("Server exited gracefully")
+}
+
+func healthCheck(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		sqlDB, err := db.DB()
+		if err != nil {
+			c.JSON(503, gin.H{"status": "unhealthy", "error": err.Error()})
+			return
+		}
+		if err := sqlDB.Ping(); err != nil {
+			c.JSON(503, gin.H{"status": "unhealthy", "error": "db ping failed"})
+			return
+		}
+		c.JSON(200, gin.H{"status": "healthy"})
 	}
 }

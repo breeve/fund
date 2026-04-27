@@ -19,6 +19,17 @@ class _CommunitiesPageState extends ConsumerState<CommunitiesPage> {
   void initState() {
     super.initState();
     Future.microtask(() {
+      final params = GoRouterState.of(context).uri.queryParameters;
+      final lifeCircleIdStr = params['lifeCircle'];
+      final blockIdStr = params['block'];
+      if (lifeCircleIdStr != null || blockIdStr != null) {
+        ref.read(communityStoreProvider.notifier).setFilters(
+          lifeCircleId: lifeCircleIdStr != null
+              ? int.tryParse(lifeCircleIdStr)
+              : null,
+          blockId: blockIdStr != null ? int.tryParse(blockIdStr) : null,
+        );
+      }
       ref.read(communityStoreProvider.notifier).loadCommunities();
     });
   }

@@ -1,13 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../stores/district_store.dart';
+import '../stores/block_store.dart';
+import '../stores/life_circle_store.dart';
+import '../stores/community_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_layout.dart';
 
-class OverviewPage extends ConsumerWidget {
+class OverviewPage extends ConsumerStatefulWidget {
   const OverviewPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<OverviewPage> createState() => _OverviewPageState();
+}
+
+class _OverviewPageState extends ConsumerState<OverviewPage> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.read(districtStoreProvider.notifier).loadDistricts();
+      ref.read(blockStoreProvider.notifier).loadBlocks();
+      ref.read(lifeCircleStoreProvider.notifier).loadLifeCircles();
+      ref.read(communityStoreProvider.notifier).loadCommunities();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final districtState = ref.watch(districtStoreProvider);
+    final blockState = ref.watch(blockStoreProvider);
+    final lifeCircleState = ref.watch(lifeCircleStoreProvider);
+    final communityState = ref.watch(communityStoreProvider);
+
+    final anyLoading = districtState.isLoading ||
+        blockState.isLoading ||
+        lifeCircleState.isLoading ||
+        communityState.isLoading;
+
+    final anyError = districtState.error != null ||
+        blockState.error != null ||
+        lifeCircleState.error != null ||
+        communityState.error != null;
+
     return AppLayout(
       body: SingleChildScrollView(
         child: Column(
@@ -17,6 +52,21 @@ class OverviewPage extends ConsumerWidget {
               title: '房产总览',
               description: '深圳二手房数据分析',
             ),
+            if (anyLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (anyError)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Text(
+                    '部分数据加载失败，请检查后端服务',
+                    style: TextStyle(color: Colors.orange),
+                  ),
+                ),
+              ),
             GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
@@ -28,34 +78,45 @@ class OverviewPage extends ConsumerWidget {
                 MetricCard(
                   icon: Icons.map,
                   title: '行政区',
-                  value: '--',
+                  value: districtState.districts.length.toString(),
                   color: AppTheme.categoryDistricts,
                 ),
                 MetricCard(
                   icon: Icons.domain,
                   title: '板块',
-                  value: '--',
+                  value: blockState.blocks.length.toString(),
                   color: AppTheme.categoryBlocks,
                 ),
                 MetricCard(
                   icon: Icons.circle,
                   title: '生活圈',
-                  value: '--',
+                  value: lifeCircleState.lifeCircles.length.toString(),
                   color: AppTheme.categoryLifeCircles,
                 ),
                 MetricCard(
                   icon: Icons.apartment,
                   title: '小区',
-                  value: '--',
+                  value: communityState.communities.length.toString(),
                   color: AppTheme.categoryCommunities,
                 ),
               ],
             ),
             const SizedBox(height: 24),
-            const SectionHeader(title: '暂无数据'),
-            const EmptyState(
-              icon: Icons.home_work_outlined,
-              message: '等待后端服务连接...',
+            const SectionHeader(title: '数据来源'),
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '数据同步自深圳贝壳找房、链家等公开房产数据，'
+                      '仅供学习研究使用。',
+                      style: TextStyle(color: AppTheme.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),

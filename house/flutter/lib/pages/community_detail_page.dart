@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/house_api.dart';
+import '../stores/house_api_service_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_layout.dart';
 
@@ -14,7 +14,6 @@ class CommunityDetailPage extends ConsumerStatefulWidget {
 }
 
 class _CommunityDetailPageState extends ConsumerState<CommunityDetailPage> {
-  final _api = HouseApiService();
   Map<String, dynamic>? _community;
   bool _isLoading = true;
   String? _error;
@@ -31,7 +30,8 @@ class _CommunityDetailPageState extends ConsumerState<CommunityDetailPage> {
       _error = null;
     });
     try {
-      final data = await _api.getCommunity(widget.communityId);
+      final api = ref.read(houseApiServiceProvider);
+      final data = await api.getCommunity(widget.communityId);
       setState(() {
         _community = data.toJson();
         _isLoading = false;
@@ -77,7 +77,7 @@ class _CommunityDetailPageState extends ConsumerState<CommunityDetailPage> {
                         _buildInfoRow('占地面积', '${_community!['land_area']} ㎡'),
                         _buildInfoRow('建筑面积', '${_community!['building_area']} ㎡'),
                         _buildInfoRow('容积率', _community!['plot_ratio']?.toString()),
-                        _buildInfoRow('绿化率', '${_community!['greening_rate']}%'),
+                        _buildInfoRow('绿化率', _formatGreeningRate(_community!['greening_rate'])),
                         _buildInfoRow('楼栋数', _community!['building_count']?.toString()),
                         _buildInfoRow('楼层数', _community!['floor_count']?.toString()),
                       ]),
@@ -132,6 +132,14 @@ class _CommunityDetailPageState extends ConsumerState<CommunityDetailPage> {
         ),
       ],
     );
+  }
+
+  String? _formatGreeningRate(dynamic value) {
+    if (value == null) return null;
+    final rate = (value is num) ? value.toDouble() : double.tryParse(value.toString());
+    if (rate == null) return value.toString();
+    if (rate > 1) return '${rate.toStringAsFixed(1)}%'; // already a percentage like 35
+    return '${(rate * 100).toStringAsFixed(1)}%'; // ratio like 0.35
   }
 
   Widget _buildInfoRow(String label, String? value) {

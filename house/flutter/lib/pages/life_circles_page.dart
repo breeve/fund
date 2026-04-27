@@ -18,6 +18,16 @@ class _LifeCirclesPageState extends ConsumerState<LifeCirclesPage> {
   void initState() {
     super.initState();
     Future.microtask(() {
+      final params = GoRouterState.of(context).uri.queryParameters;
+      final blockIdStr = params['block'];
+      if (blockIdStr != null) {
+        final blockId = int.tryParse(blockIdStr);
+        if (blockId != null) {
+          ref.read(lifeCircleStoreProvider.notifier).selectBlock(blockId);
+          ref.read(lifeCircleStoreProvider.notifier).loadLifeCircles(blockId: blockId);
+          return;
+        }
+      }
       ref.read(lifeCircleStoreProvider.notifier).loadLifeCircles();
     });
   }

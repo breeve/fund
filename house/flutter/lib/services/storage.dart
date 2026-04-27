@@ -9,6 +9,7 @@ class StorageService {
   static const String _blockBox = 'blocks';
   static const String _lifeCircleBox = 'lifeCircles';
   static const String _communityBox = 'communities';
+  static const String _settingsBox = 'settings';
 
   Future<void> init() async {
     await Hive.initFlutter();
@@ -22,12 +23,14 @@ class StorageService {
     await Hive.openBox<Block>(_blockBox);
     await Hive.openBox<LifeCircle>(_lifeCircleBox);
     await Hive.openBox<Community>(_communityBox);
+    await Hive.openBox(_settingsBox);
   }
 
   Box<District> get districtBox => Hive.box<District>(_districtBox);
   Box<Block> get blockBox => Hive.box<Block>(_blockBox);
   Box<LifeCircle> get lifeCircleBox => Hive.box<LifeCircle>(_lifeCircleBox);
   Box<Community> get communityBox => Hive.box<Community>(_communityBox);
+  Box get settingsBox => Hive.box(_settingsBox);
 
   // Districts
   Future<void> saveDistricts(List<District> districts) async {

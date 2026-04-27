@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"house/internal/model"
+	"house/internal/repository"
 	"house/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -12,11 +13,11 @@ import (
 
 // HouseHandler 房产HTTP处理
 type HouseHandler struct {
-	svc *service.HouseService
+	svc service.HouseServiceInterface
 }
 
 // NewHouseHandler 创建房产处理器
-func NewHouseHandler(svc *service.HouseService) *HouseHandler {
+func NewHouseHandler(svc service.HouseServiceInterface) *HouseHandler {
 	return &HouseHandler{svc: svc}
 }
 
@@ -27,41 +28,48 @@ func (h *HouseHandler) RegisterRoutes(r *gin.Engine) {
 	r.GET("/districts/:id", h.GetDistrict)
 	r.POST("/districts", h.CreateDistrict)
 	r.PUT("/districts/:id", h.UpdateDistrict)
+	r.DELETE("/districts/:id", h.DeleteDistrict)
 
 	// 板块
 	r.GET("/blocks", h.ListBlocks)
 	r.GET("/blocks/:id", h.GetBlock)
 	r.POST("/blocks", h.CreateBlock)
 	r.PUT("/blocks/:id", h.UpdateBlock)
+	r.DELETE("/blocks/:id", h.DeleteBlock)
 
 	// 生活圈
 	r.GET("/life-circles", h.ListLifeCircles)
 	r.GET("/life-circles/:id", h.GetLifeCircle)
 	r.POST("/life-circles", h.CreateLifeCircle)
 	r.PUT("/life-circles/:id", h.UpdateLifeCircle)
+	r.DELETE("/life-circles/:id", h.DeleteLifeCircle)
 
 	// 小区
 	r.GET("/communities", h.ListCommunities)
 	r.GET("/communities/:id", h.GetCommunity)
 	r.POST("/communities", h.CreateCommunity)
 	r.PUT("/communities/:id", h.UpdateCommunity)
+	r.DELETE("/communities/:id", h.DeleteCommunity)
 }
 
 // 行政区处理函数
 
 func (h *HouseHandler) ListDistricts(c *gin.Context) {
-	districts, err := h.svc.ListDistricts()
+	ctx := c.Request.Context()
+	p, page := repository.ParsePagination(c)
+	districts, total, err := h.svc.ListDistricts(ctx, p)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": districts})
+	repository.WritePaginated(c, districts, total, p, page)
 }
 
 func (h *HouseHandler) GetDistrict(c *gin.Context) {
+	ctx := c.Request.Context()
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	district, err := h.svc.GetDistrict(id)
-	if err != nil {
+	district, err := h.svc.GetDistrict(ctx, id)
+	if err != nil || district == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
 	}
@@ -69,12 +77,13 @@ func (h *HouseHandler) GetDistrict(c *gin.Context) {
 }
 
 func (h *HouseHandler) CreateDistrict(c *gin.Context) {
+	ctx := c.Request.Context()
 	var district model.District
 	if err := c.ShouldBindJSON(&district); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.svc.CreateDistrict(&district); err != nil {
+	if err := h.svc.CreateDistrict(ctx, &district); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -82,6 +91,7 @@ func (h *HouseHandler) CreateDistrict(c *gin.Context) {
 }
 
 func (h *HouseHandler) UpdateDistrict(c *gin.Context) {
+	ctx := c.Request.Context()
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	var district model.District
 	if err := c.ShouldBindJSON(&district); err != nil {
@@ -89,39 +99,50 @@ func (h *HouseHandler) UpdateDistrict(c *gin.Context) {
 		return
 	}
 	district.ID = id
-	if err := h.svc.UpdateDistrict(&district); err != nil {
+	if err := h.svc.UpdateDistrict(ctx, &district); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": district})
 }
 
+func (h *HouseHandler) DeleteDistrict(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err := h.svc.DeleteDistrict(ctx, id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": "deleted"})
+}
+
 // 板块处理函数
 
 func (h *HouseHandler) ListBlocks(c *gin.Context) {
-	// 支持按 district_id 过滤
+	ctx := c.Request.Context()
+	p, page := repository.ParsePagination(c)
+	var blocks []model.Block
+	var total int64
+	var err error
+
 	if districtIDStr := c.Query("district_id"); districtIDStr != "" {
 		districtID, _ := strconv.ParseInt(districtIDStr, 10, 64)
-		blocks, err := h.svc.ListBlocksByDistrict(districtID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"data": blocks})
-		return
+		blocks, total, err = h.svc.ListBlocksByDistrict(ctx, districtID, p)
+	} else {
+		blocks, total, err = h.svc.ListBlocks(ctx, p)
 	}
-	blocks, err := h.svc.ListBlocks()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": blocks})
+	repository.WritePaginated(c, blocks, total, p, page)
 }
 
 func (h *HouseHandler) GetBlock(c *gin.Context) {
+	ctx := c.Request.Context()
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	block, err := h.svc.GetBlock(id)
-	if err != nil {
+	block, err := h.svc.GetBlock(ctx, id)
+	if err != nil || block == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
 	}
@@ -129,12 +150,13 @@ func (h *HouseHandler) GetBlock(c *gin.Context) {
 }
 
 func (h *HouseHandler) CreateBlock(c *gin.Context) {
+	ctx := c.Request.Context()
 	var block model.Block
 	if err := c.ShouldBindJSON(&block); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.svc.CreateBlock(&block); err != nil {
+	if err := h.svc.CreateBlock(ctx, &block); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -142,6 +164,7 @@ func (h *HouseHandler) CreateBlock(c *gin.Context) {
 }
 
 func (h *HouseHandler) UpdateBlock(c *gin.Context) {
+	ctx := c.Request.Context()
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	var block model.Block
 	if err := c.ShouldBindJSON(&block); err != nil {
@@ -149,39 +172,50 @@ func (h *HouseHandler) UpdateBlock(c *gin.Context) {
 		return
 	}
 	block.ID = id
-	if err := h.svc.UpdateBlock(&block); err != nil {
+	if err := h.svc.UpdateBlock(ctx, &block); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": block})
 }
 
+func (h *HouseHandler) DeleteBlock(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err := h.svc.DeleteBlock(ctx, id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": "deleted"})
+}
+
 // 生活圈处理函数
 
 func (h *HouseHandler) ListLifeCircles(c *gin.Context) {
-	// 支持按 block_id 过滤
+	ctx := c.Request.Context()
+	p, page := repository.ParsePagination(c)
+	var lifeCircles []model.LifeCircle
+	var total int64
+	var err error
+
 	if blockIDStr := c.Query("block_id"); blockIDStr != "" {
 		blockID, _ := strconv.ParseInt(blockIDStr, 10, 64)
-		lifeCircles, err := h.svc.ListLifeCirclesByBlock(blockID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"data": lifeCircles})
-		return
+		lifeCircles, total, err = h.svc.ListLifeCirclesByBlock(ctx, blockID, p)
+	} else {
+		lifeCircles, total, err = h.svc.ListLifeCircles(ctx, p)
 	}
-	lifeCircles, err := h.svc.ListLifeCircles()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": lifeCircles})
+	repository.WritePaginated(c, lifeCircles, total, p, page)
 }
 
 func (h *HouseHandler) GetLifeCircle(c *gin.Context) {
+	ctx := c.Request.Context()
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	lc, err := h.svc.GetLifeCircle(id)
-	if err != nil {
+	lc, err := h.svc.GetLifeCircle(ctx, id)
+	if err != nil || lc == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
 	}
@@ -189,12 +223,13 @@ func (h *HouseHandler) GetLifeCircle(c *gin.Context) {
 }
 
 func (h *HouseHandler) CreateLifeCircle(c *gin.Context) {
+	ctx := c.Request.Context()
 	var lc model.LifeCircle
 	if err := c.ShouldBindJSON(&lc); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.svc.CreateLifeCircle(&lc); err != nil {
+	if err := h.svc.CreateLifeCircle(ctx, &lc); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -202,6 +237,7 @@ func (h *HouseHandler) CreateLifeCircle(c *gin.Context) {
 }
 
 func (h *HouseHandler) UpdateLifeCircle(c *gin.Context) {
+	ctx := c.Request.Context()
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	var lc model.LifeCircle
 	if err := c.ShouldBindJSON(&lc); err != nil {
@@ -209,49 +245,68 @@ func (h *HouseHandler) UpdateLifeCircle(c *gin.Context) {
 		return
 	}
 	lc.ID = id
-	if err := h.svc.UpdateLifeCircle(&lc); err != nil {
+	if err := h.svc.UpdateLifeCircle(ctx, &lc); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": lc})
 }
 
+func (h *HouseHandler) DeleteLifeCircle(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err := h.svc.DeleteLifeCircle(ctx, id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": "deleted"})
+}
+
 // 小区处理函数
 
 func (h *HouseHandler) ListCommunities(c *gin.Context) {
-	// 支持按 block_id 和 life_circle_id 过滤
-	if blockIDStr := c.Query("block_id"); blockIDStr != "" {
-		blockID, _ := strconv.ParseInt(blockIDStr, 10, 64)
-		communities, err := h.svc.ListCommunitiesByBlock(blockID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
+	ctx := c.Request.Context()
+	p, page := repository.ParsePagination(c)
+
+	// 解析价格区间筛选参数
+	var priceMin, priceMax *float64
+	if pm := c.Query("price_min"); pm != "" {
+		if v, err := strconv.ParseFloat(pm, 64); err == nil {
+			priceMin = &v
 		}
-		c.JSON(http.StatusOK, gin.H{"data": communities})
-		return
 	}
-	if lifeCircleIDStr := c.Query("life_circle_id"); lifeCircleIDStr != "" {
-		lifeCircleID, _ := strconv.ParseInt(lifeCircleIDStr, 10, 64)
-		communities, err := h.svc.ListCommunitiesByLifeCircle(lifeCircleID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
+	if pmax := c.Query("price_max"); pmax != "" {
+		if v, err := strconv.ParseFloat(pmax, 64); err == nil {
+			priceMax = &v
 		}
-		c.JSON(http.StatusOK, gin.H{"data": communities})
-		return
 	}
-	communities, err := h.svc.ListCommunities()
+
+	// 解析 block_id / life_circle_id
+	var blockID, lifeCircleID *int64
+	if bStr := c.Query("block_id"); bStr != "" {
+		if v, err := strconv.ParseInt(bStr, 10, 64); err == nil {
+			blockID = &v
+		}
+	}
+	if lcStr := c.Query("life_circle_id"); lcStr != "" {
+		if v, err := strconv.ParseInt(lcStr, 10, 64); err == nil {
+			lifeCircleID = &v
+		}
+	}
+
+	communities, total, err := h.svc.ListCommunities(ctx, p, priceMin, priceMax, blockID, lifeCircleID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": communities})
+	repository.WritePaginated(c, communities, total, p, page)
 }
 
 func (h *HouseHandler) GetCommunity(c *gin.Context) {
+	ctx := c.Request.Context()
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	community, err := h.svc.GetCommunity(id)
-	if err != nil {
+	community, err := h.svc.GetCommunity(ctx, id)
+	if err != nil || community == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
 	}
@@ -259,12 +314,13 @@ func (h *HouseHandler) GetCommunity(c *gin.Context) {
 }
 
 func (h *HouseHandler) CreateCommunity(c *gin.Context) {
+	ctx := c.Request.Context()
 	var community model.Community
 	if err := c.ShouldBindJSON(&community); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.svc.CreateCommunity(&community); err != nil {
+	if err := h.svc.CreateCommunity(ctx, &community); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -272,6 +328,7 @@ func (h *HouseHandler) CreateCommunity(c *gin.Context) {
 }
 
 func (h *HouseHandler) UpdateCommunity(c *gin.Context) {
+	ctx := c.Request.Context()
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	var community model.Community
 	if err := c.ShouldBindJSON(&community); err != nil {
@@ -279,9 +336,19 @@ func (h *HouseHandler) UpdateCommunity(c *gin.Context) {
 		return
 	}
 	community.ID = id
-	if err := h.svc.UpdateCommunity(&community); err != nil {
+	if err := h.svc.UpdateCommunity(ctx, &community); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": community})
+}
+
+func (h *HouseHandler) DeleteCommunity(c *gin.Context) {
+	ctx := c.Request.Context()
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err := h.svc.DeleteCommunity(ctx, id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": "deleted"})
 }

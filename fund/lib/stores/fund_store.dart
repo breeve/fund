@@ -1,8 +1,14 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/fund.dart';
 import '../services/fund_api.dart';
 
-final fundApiServiceProvider = Provider<FundApiService>((ref) => FundApiService());
+final dioProvider = Provider<Dio>((ref) => Dio());
+
+final fundApiServiceProvider = Provider<FundApiService>((ref) {
+  final dio = ref.watch(dioProvider);
+  return FundApiFactory.create(dio);
+});
 
 final fundStoreProvider =
     StateNotifierProvider<FundStoreNotifier, FundState>((ref) {

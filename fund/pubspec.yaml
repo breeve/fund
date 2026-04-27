@@ -21,6 +21,9 @@ dependencies:
   path_provider: ^2.1.1
   file_picker: ^6.1.1
   excel: ^4.0.3
+  shelf: ^1.4.1
+  shelf_proxy: ^1.0.4
+  web: ^1.0.0
 
 dev_dependencies:
   flutter_test:

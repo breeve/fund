@@ -39,7 +39,7 @@ class _FundDiagnosisPageState extends ConsumerState<FundDiagnosisPage> {
           : fund == null
               ? EmptyState(
                   icon: Icons.error_outline,
-                  message: '无法获取基金信息',
+                  message: fundState.error ?? '无法获取基金信息',
                   action: ElevatedButton(
                     onPressed: () => context.go('/fund'),
                     child: const Text('返回搜索'),
@@ -121,7 +121,6 @@ class _FundDiagnosisPageState extends ConsumerState<FundDiagnosisPage> {
   }
 
   Widget _buildRiskMetrics() {
-    final fundState = ref.watch(fundStoreProvider);
     final notifier = ref.read(fundStoreProvider.notifier);
     final metrics = notifier.calculateRiskMetrics();
     final rating = notifier.calculateRating(metrics);

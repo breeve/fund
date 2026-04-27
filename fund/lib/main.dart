@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'theme/app_theme.dart';
+import 'stores/asset_store.dart';
 import 'pages/overview_page.dart';
 import 'pages/assets_page.dart';
 import 'pages/asset_form_page.dart';
@@ -9,7 +10,6 @@ import 'pages/asset_detail_page.dart';
 import 'pages/fund_page.dart';
 import 'pages/fund_diagnosis_page.dart';
 import 'pages/settings_page.dart';
-import 'stores/asset_store.dart';
 import 'services/storage.dart';
 import 'widgets/app_shell.dart';
 
@@ -80,7 +80,7 @@ class FundApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       title: '家庭资产管理系统',
-      theme: AppTheme.lightTheme,
+      theme: AppTheme.theme,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
     );

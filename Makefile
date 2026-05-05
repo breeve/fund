@@ -31,13 +31,13 @@ install:
 
 start: stop
 	@mkdir -p logs
-	@echo "Starting backend (port 8080)..."
-	cd server && python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8080 >> $(shell pwd)/logs/app.log 2>&1 &
+	@echo "Starting backend (8000)..."
+	cd server && ./start.sh >> $(shell pwd)/logs/app.log 2>&1 &
 	@echo "Starting frontend (port 3000)..."
 	cd webapp && npm run dev >> $(shell pwd)/logs/app.log 2>&1 &
 	@echo ""
 	@echo "Services started:"
-	@echo "  Backend:  http://localhost:8080"
+	@echo "  Backend:  http://localhost:8000"
 	@echo "  Frontend: http://localhost:3000"
 	@echo "  Logs:     logs/app.log"
 

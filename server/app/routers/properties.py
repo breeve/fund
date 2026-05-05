@@ -19,6 +19,15 @@ async def get_db():
         yield session
 
 
+@router.get("/districts", response_model=List[BlockInfo])
+async def get_district_blocks(
+    district: Optional[str] = Query(None),
+):
+    """获取区域下的板块列表"""
+    service = PropertyService(None)
+    return await service.list_blocks(district)
+
+
 @router.get("/blocks", response_model=List[BlockInfo])
 async def list_blocks(
     district: Optional[str] = Query(None),

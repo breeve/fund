@@ -16,19 +16,45 @@ body {
   font-family: var(--font-family-sans);
   font-size: var(--font-size-base);
   color: var(--color-gray-900);
-  background-color: var(--color-gray-50);
+  background-color: var(--color-main-bg);
   line-height: 1.5;
+  min-height: 100vh;
+}
+
+.grid-background {
+  background-color: var(--color-main-bg);
+  background-image: 
+    linear-gradient(var(--color-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px);
+  background-size: 20px 20px;
 }
 
 a {
-  color: var(--color-primary-600);
+  color: inherit;
   text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
 }
 
 button {
   cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-gray-200);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gray-300);
 }

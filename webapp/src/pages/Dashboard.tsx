@@ -36,33 +36,36 @@ const MOCK_PROPERTY_TREND = [
 
 export default function Dashboard() {
   return (
-    <div style={{ padding: 'var(--spacing-6)', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-6)' }}>
-      <h1 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)' }}>家庭资产总览</h1>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-10)' }}>
+      <header>
+        <h1 style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-gray-900)' }}>家庭资产总览</h1>
+        <p style={{ color: 'var(--color-gray-500)', marginTop: 'var(--spacing-2)', fontSize: 'var(--font-size-sm)' }}>实时掌握您的财务状况与资产分布</p>
+      </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--spacing-4)' }}>
-        <Card>
-          <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-gray-500)' }}>总资产</div>
-          <div style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-primary-600)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--spacing-6)' }}>
+        <Card style={{ borderLeft: '4px solid var(--color-accent)' }}>
+          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-gray-500)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--spacing-2)' }}>总资产</div>
+          <div style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-gray-900)' }}>
             ¥{MOCK_ASSETS.total.toLocaleString()}
           </div>
         </Card>
-        <Card>
-          <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-gray-500)' }}>总负债</div>
+        <Card style={{ borderLeft: '4px solid var(--color-danger)' }}>
+          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-gray-500)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--spacing-2)' }}>总负债</div>
           <div style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-danger)' }}>
             ¥{MOCK_ASSETS.liabilities.toLocaleString()}
           </div>
         </Card>
-        <Card>
-          <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-gray-500)' }}>净资产</div>
+        <Card style={{ borderLeft: '4px solid var(--color-success)' }}>
+          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-gray-500)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 'var(--spacing-2)' }}>净资产</div>
           <div style={{ fontSize: 'var(--font-size-2xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--color-success)' }}>
             ¥{MOCK_ASSETS.netAssets.toLocaleString()}
           </div>
         </Card>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-6)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-8)' }}>
         <Card title="资产构成">
-          <div style={{ height: '250px' }}>
+          <div style={{ height: '300px' }}>
             <PieChart
               data={MOCK_ASSET_ALLOCATION.map((item) => ({
                 name: item.name,
@@ -72,7 +75,7 @@ export default function Dashboard() {
           </div>
         </Card>
         <Card title="基金组合表现">
-          <div style={{ height: '250px' }}>
+          <div style={{ height: '300px' }}>
             <LineChart
               xData={MOCK_FUND_PERFORMANCE.map((d) => d.month)}
               yData={MOCK_FUND_PERFORMANCE.map((d) => d.value)}
@@ -82,7 +85,7 @@ export default function Dashboard() {
       </div>
 
       <Card title="房产趋势">
-        <div style={{ height: '250px' }}>
+        <div style={{ height: '300px' }}>
           <BarChart
             xData={MOCK_PROPERTY_TREND.map((d) => d.month)}
             yData={MOCK_PROPERTY_TREND.map((d) => d.price)}
@@ -90,9 +93,9 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--spacing-4)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--spacing-8)' }}>
         <Card title="基金配置">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
             {[
               { name: '景顺长城新兴成长混合', code: '260108', return: 15.8, ratio: 35 },
               { name: '易方达消费行业股票', code: '110022', return: 12.3, ratio: 25 },
@@ -105,25 +108,26 @@ export default function Dashboard() {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: 'var(--spacing-2) var(--spacing-3)',
+                  padding: 'var(--spacing-4)',
                   backgroundColor: 'var(--color-gray-50)',
-                  borderRadius: 'var(--radius-md)',
+                  borderRadius: 'var(--radius-lg)',
+                  border: '1px solid var(--color-gray-100)'
                 }}
               >
                 <div>
-                  <div style={{ fontWeight: 'var(--font-weight-medium)' }}>{fund.name}</div>
-                  <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-gray-500)' }}>{fund.code}</div>
+                  <div style={{ fontWeight: 'var(--font-weight-semibold)', fontSize: 'var(--font-size-sm)' }}>{fund.name}</div>
+                  <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-gray-500)', marginTop: '2px' }}>{fund.code}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ color: 'var(--color-success)', fontWeight: 'var(--font-weight-semibold)' }}>+{fund.return}%</div>
-                  <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-gray-500)' }}>{fund.ratio}%</div>
+                  <div style={{ color: 'var(--color-success)', fontWeight: 'var(--font-weight-bold)', fontSize: 'var(--font-size-sm)' }}>+{fund.return}%</div>
+                  <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-gray-500)', marginTop: '2px' }}>{fund.ratio}%</div>
                 </div>
               </div>
             ))}
           </div>
         </Card>
         <Card title="房产概览">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--spacing-3)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--spacing-4)' }}>
             {[
               { label: '福田区', count: 2, avgPrice: 82000 },
               { label: '南山区', count: 1, avgPrice: 95000 },
@@ -133,14 +137,15 @@ export default function Dashboard() {
               <div
                 key={district.label}
                 style={{
-                  padding: 'var(--spacing-3)',
+                  padding: 'var(--spacing-4)',
                   backgroundColor: 'var(--color-gray-50)',
-                  borderRadius: 'var(--radius-md)',
+                  borderRadius: 'var(--radius-lg)',
+                  border: '1px solid var(--color-gray-100)'
                 }}
               >
-                <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-gray-500)' }}>{district.label}</div>
-                <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-semibold)' }}>{district.count} 套</div>
-                <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-primary-600)' }}>均价 ¥{district.avgPrice.toLocaleString()}/㎡</div>
+                <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-gray-500)', textTransform: 'uppercase' }}>{district.label}</div>
+                <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'var(--font-weight-bold)', margin: 'var(--spacing-1) 0' }}>{district.count} 套</div>
+                <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-accent)', fontWeight: 'var(--font-weight-medium)' }}>均价 ¥{district.avgPrice.toLocaleString()}/㎡</div>
               </div>
             ))}
           </div>

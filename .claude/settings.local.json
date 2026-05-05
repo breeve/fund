@@ -43,7 +43,11 @@
       "Bash(pkill -f \"uvicorn app.main:app\")",
       "Bash(npx tsc:*)",
       "Bash(./node_modules/.bin/tsc --noEmit)",
-      "Bash(./node_modules/.bin/vite build:*)"
+      "Bash(./node_modules/.bin/vite build:*)",
+      "Bash(uuidgen)",
+      "Bash(pip show:*)",
+      "WebFetch(domain:akshare.akfamily.xyz)",
+      "Bash(chmod +x:*)"
     ]
   }
 }

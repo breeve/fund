@@ -14,28 +14,28 @@ const severityConfig: Record<
   { bg: string; border: string; icon: string; titleColor: string }
 > = {
   normal: {
-    bg: 'var(--color-primary-50)',
-    border: 'var(--color-primary-500)',
-    icon: '●',
-    titleColor: 'var(--color-primary-600)',
+    bg: 'var(--color-gray-50)',
+    border: 'var(--color-gray-400)',
+    icon: 'ℹ️',
+    titleColor: 'var(--color-gray-900)',
   },
   attention: {
-    bg: '#fef3c7',
+    bg: '#fffbeb',
     border: 'var(--color-warning)',
-    icon: '◐',
-    titleColor: 'var(--color-warning)',
+    icon: '💡',
+    titleColor: '#92400e',
   },
   warning: {
-    bg: '#fee2e2',
-    border: 'var(--color-danger)',
-    icon: '◉',
-    titleColor: 'var(--color-danger)',
+    bg: '#fff7ed',
+    border: 'var(--color-warning)',
+    icon: '⚠️',
+    titleColor: '#9a3412',
   },
   danger: {
-    bg: '#fecaca',
-    border: '#b91c1c',
-    icon: '◼',
-    titleColor: '#b91c1c',
+    bg: '#fef2f2',
+    border: 'var(--color-danger)',
+    icon: '🚨',
+    titleColor: '#991b1b',
   },
 };
 
@@ -45,18 +45,20 @@ export function Alert({ severity, title, children, action }: AlertProps) {
   return (
     <div
       style={{
-        padding: 'var(--spacing-4)',
+        padding: 'var(--spacing-5) var(--spacing-6)',
         backgroundColor: config.bg,
+        border: `1px solid ${config.border}33`,
         borderLeft: `4px solid ${config.border}`,
-        borderRadius: 'var(--radius-md)',
+        borderRadius: 'var(--radius-lg)',
+        boxShadow: 'var(--shadow-sm)',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-3)' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-4)' }}>
         <span
           style={{
             fontSize: 'var(--font-size-lg)',
-            color: config.titleColor,
-            lineHeight: 1.2,
+            lineHeight: 1,
+            marginTop: '2px'
           }}
         >
           {config.icon}
@@ -65,9 +67,10 @@ export function Alert({ severity, title, children, action }: AlertProps) {
           {title && (
             <div
               style={{
-                fontWeight: 'var(--font-weight-semibold)',
+                fontWeight: 'var(--font-weight-bold)',
                 color: config.titleColor,
                 marginBottom: 'var(--spacing-1)',
+                fontSize: 'var(--font-size-sm)'
               }}
             >
               {title}
@@ -77,7 +80,7 @@ export function Alert({ severity, title, children, action }: AlertProps) {
             style={{
               fontSize: 'var(--font-size-sm)',
               color: 'var(--color-gray-700)',
-              lineHeight: 1.5,
+              lineHeight: 1.6,
             }}
           >
             {children}
@@ -106,9 +109,9 @@ export function AlertIndicator({ severity, label }: AlertIndicatorProps) {
           : '危险';
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
-      <span style={{ fontSize: 'var(--font-size-sm)', color: config.titleColor }}>{config.icon}</span>
-      <span style={{ fontSize: 'var(--font-size-sm)', color: config.titleColor }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', padding: '2px 8px', borderRadius: 'var(--radius-full)', backgroundColor: `${config.bg}` }}>
+      <span style={{ fontSize: '10px' }}>{config.icon}</span>
+      <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 'var(--font-weight-medium)', color: config.titleColor }}>
         {label || labelText}
       </span>
     </div>

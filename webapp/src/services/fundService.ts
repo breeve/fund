@@ -11,7 +11,7 @@ export const fundService = {
   },
 
   async getNavHistory(code: string): Promise<FundNavHistory[]> {
-    return apiClient.get(`/funds/${code}/nav`);
+    return apiClient.get(`/funds/${code}/nav-history`);
   },
 
   async getHoldings(code: string): Promise<FundHolding[]> {

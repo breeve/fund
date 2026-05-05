@@ -34,21 +34,70 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        backdropFilter: 'blur(4px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 1000,
+        padding: 'var(--spacing-4)'
       }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div style={{ backgroundColor: '#fff', borderRadius: 'var(--radius-lg)', padding: 'var(--spacing-6)', minWidth: 320, maxWidth: 480 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--spacing-4)' }}>
-          <h2 id="modal-title" style={{ fontSize: 'var(--font-size-xl)', fontWeight: 'var(--font-weight-semibold)' }}>{title}</h2>
-          <Button variant="ghost" onClick={onClose} aria-label="关闭">✕</Button>
+      <div style={{ 
+        backgroundColor: 'var(--color-white)', 
+        borderRadius: 'var(--radius-2xl)', 
+        boxShadow: 'var(--shadow-lg)',
+        width: '100%',
+        maxWidth: 640,
+        maxHeight: '90vh',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}>
+        {/* Modal Header */}
+        <div style={{ 
+          padding: 'var(--spacing-6) var(--spacing-8)', 
+          borderBottom: '1px solid var(--color-gray-100)',
+          display: 'flex', 
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <h2 id="modal-title" style={{ 
+            fontSize: 'var(--font-size-xl)', 
+            fontWeight: 'var(--font-weight-bold)',
+            color: 'var(--color-gray-900)'
+          }}>{title}</h2>
+          <Button 
+            variant="ghost" 
+            onClick={onClose} 
+            aria-label="关闭"
+            style={{ padding: '4px', fontSize: '20px', color: 'var(--color-gray-400)' }}
+          >✕</Button>
         </div>
-        <div>{children}</div>
-        {footer && <div style={{ marginTop: 'var(--spacing-4)' }}>{footer}</div>}
+
+        {/* Modal Body */}
+        <div style={{ 
+          padding: 'var(--spacing-8)', 
+          overflowY: 'auto',
+          flex: 1
+        }}>
+          {children}
+        </div>
+
+        {/* Modal Footer */}
+        {footer && (
+          <div style={{ 
+            padding: 'var(--spacing-6) var(--spacing-8)', 
+            borderTop: '1px solid var(--color-gray-100)',
+            backgroundColor: 'var(--color-gray-50)',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: 'var(--spacing-3)'
+          }}>
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 """FastAPI 应用入口"""
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -7,6 +8,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, BaseModel
 from app.routers import assets, funds, properties, analysis
+
+# 配置日志
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%H:%M:%S",
+)
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager

@@ -38,7 +38,12 @@
       "Bash(grep -oE '.{0,100}FHGG.{0,100}')",
       "Bash(grep -oE '.{0,50}ccmx.{0,100}')",
       "Bash(grep -oE '\"ccmx\".{0,200}')",
-      "Bash(grep -oE '.{0,50}FundArchivesDatas.{0,100}')"
+      "Bash(grep -oE '.{0,50}FundArchivesDatas.{0,100}')",
+      "Bash(python3:*)",
+      "Bash(pkill -f \"uvicorn app.main:app\")",
+      "Bash(npx tsc:*)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(./node_modules/.bin/vite build:*)"
     ]
   }
 }
